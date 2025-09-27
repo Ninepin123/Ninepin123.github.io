@@ -234,6 +234,70 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
     min-width: 45px;
     text-align: center;
     font-weight: 500;
+    transition: all 0.2s ease;
+    user-select: none;
+    border: 1px solid transparent;
+    position: relative;
+}
+
+.slider-display::after {
+    content: '✏️';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    font-size: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.slider-display:hover {
+    background-color: var(--secondary-hover-color);
+    transform: scale(1.05);
+    border: 1px solid var(--primary-color);
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+
+.slider-display:hover::after {
+    opacity: 1;
+}
+
+/* 數值編輯功能樣式 */
+.editing-input {
+    position: absolute;
+    z-index: 1000;
+    border: 2px solid var(--primary-color) !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #333 !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    outline: none !important;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.3) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.editing-input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 12px rgba(0, 123, 255, 0.5) !important;
+}
+
+/* 數值更新動畫 */
+@keyframes valueUpdated {
+    0% {
+        background-color: var(--secondary-color);
+        transform: scale(1);
+    }
+    50% {
+        background-color: var(--primary-color);
+        transform: scale(1.1);
+        color: white;
+    }
+    100% {
+        background-color: var(--secondary-color);
+        transform: scale(1);
+        color: var(--text-color);
+    }
 }
 
 /* --- 專案顯示 --- */

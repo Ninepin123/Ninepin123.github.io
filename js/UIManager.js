@@ -78,6 +78,9 @@ class UIManager {
         // 攝影機靈敏度
         this.cameraSensitivitySlider.addEventListener('input', (e) => this.stateManager.setCameraSensitivity(parseFloat(e.target.value)));
 
+        // 添加雙擊編輯功能
+        this.setupDoubleClickEditing();
+
         // 操作按鈕
         this.generateBtn.addEventListener('click', () => this.generateCode());
         this.copyCodeBtn.addEventListener('click', () => this.copyCode()); // 新增事件監聽器
@@ -696,6 +699,183 @@ class UIManager {
         return rgb.startsWith('#') ? rgb : '#000000';
     }
 
+
+    // 設置雙擊編輯功能
+    setupDoubleClickEditing() {
+        // 繪畫高度
+        this.setupDisplayDoubleClick(
+            this.heightDisplay, 
+            'height', 
+            (value) => {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= 0 && numValue <= 10) {
+                    this.drawingHeightSlider.value = numValue;
+                    this.stateManager.setDrawingHeight(numValue);
+                    return true;
+                }
+                return false;
+            },
+            (value) => value.toFixed(1)
+        );
+
+        // 攝影機靈敏度
+        this.setupDisplayDoubleClick(
+            this.sensitivityDisplay, 
+            'sensitivity', 
+            (value) => {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= 0.1 && numValue <= 3) {
+                    this.cameraSensitivitySlider.value = numValue;
+                    this.stateManager.setCameraSensitivity(numValue);
+                    return true;
+                }
+                return false;
+            },
+            (value) => value.toFixed(1)
+        );
+
+        // 平面旋轉 X軸
+        this.setupDisplayDoubleClick(
+            this.rotationXDisplay, 
+            'rotation-x', 
+            (value) => {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= -180 && numValue <= 180) {
+                    this.planeRotationXSlider.value = numValue;
+                    this.handlePlaneRotationChange();
+                    return true;
+                }
+                return false;
+            },
+            (value) => `${Math.round(value)}°`
+        );
+
+        // 平面旋轉 Y軸
+        this.setupDisplayDoubleClick(
+            this.rotationYDisplay, 
+            'rotation-y', 
+            (value) => {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= -180 && numValue <= 180) {
+                    this.planeRotationYSlider.value = numValue;
+                    this.handlePlaneRotationChange();
+                    return true;
+                }
+                return false;
+            },
+            (value) => `${Math.round(value)}°`
+        );
+
+        // 平面旋轉 Z軸
+        this.setupDisplayDoubleClick(
+            this.rotationZDisplay, 
+            'rotation-z', 
+            (value) => {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= -180 && numValue <= 180) {
+                    this.planeRotationZSlider.value = numValue;
+                    this.handlePlaneRotationChange();
+                    return true;
+                }
+                return false;
+            },
+            (value) => `${Math.round(value)}°`
+        );
+    }
+
+    // 通用的雙擊編輯設置方法
+    setupDisplayDoubleClick(displayElement, identifier, validateAndUpdate, formatValue) {
+        let isEditing = false;
+        
+        displayElement.style.cursor = 'pointer';
+        displayElement.title = '點擊編輯數值';
+        
+        displayElement.addEventListener('click', () => {
+            if (isEditing) return;
+            
+            isEditing = true;
+            const originalValue = displayElement.textContent;
+            const numericValue = originalValue.replace(/[^\d.-]/g, ''); // 移除非數字字符
+            
+            // 創建輸入框
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = numericValue;
+            input.className = `editing-input editing-${identifier}`;
+            input.style.cssText = `
+                width: ${displayElement.offsetWidth + 20}px;
+                height: ${displayElement.offsetHeight}px;
+                font-size: ${window.getComputedStyle(displayElement).fontSize};
+                font-family: ${window.getComputedStyle(displayElement).fontFamily};
+                text-align: center;
+                border: 2px solid #007bff;
+                border-radius: 4px;
+                background: #fff;
+                color: #333;
+                outline: none;
+                box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+            `;
+            
+            // 替換顯示元素
+            displayElement.style.display = 'none';
+            displayElement.parentNode.appendChild(input);
+            
+            // 選中文字並聚焦
+            input.focus();
+            input.select();
+            
+            const finishEditing = (save = false) => {
+                if (!isEditing) return;
+                
+                let success = false;
+                if (save) {
+                    const newValue = input.value.trim();
+                    if (newValue !== '' && validateAndUpdate(newValue)) {
+                        success = true;
+                    } else {
+                        // 顯示錯誤提示
+                        input.style.borderColor = '#dc3545';
+                        input.style.boxShadow = '0 0 8px rgba(220, 53, 69, 0.3)';
+                        setTimeout(() => {
+                            if (input.parentNode) {
+                                input.style.borderColor = '#007bff';
+                                input.style.boxShadow = '0 0 8px rgba(0, 123, 255, 0.3)';
+                            }
+                        }, 1000);
+                        return; // 不結束編輯
+                    }
+                }
+                
+                // 清理編輯狀態
+                isEditing = false;
+                displayElement.style.display = '';
+                if (input.parentNode) {
+                    input.parentNode.removeChild(input);
+                }
+                
+                if (success) {
+                    // 顯示成功動畫
+                    displayElement.style.animation = 'valueUpdated 0.6s ease-out';
+                    setTimeout(() => {
+                        displayElement.style.animation = '';
+                    }, 600);
+                }
+            };
+            
+            // 事件監聽
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    finishEditing(true);
+                } else if (e.key === 'Escape') {
+                    finishEditing(false);
+                }
+            });
+            
+            input.addEventListener('blur', () => {
+                finishEditing(true);
+            });
+        });
+    }
 
     // 將專案管理按鈕的事件監聽器與 ProjectManager 連接
     bindProjectManager(projectManager) {
