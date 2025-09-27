@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MythicMobs 粒子特效 3D 繪圖器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="scene-canvas"></canvas>
+    
+    <!-- 方向指示器 -->
+    <div id="direction-indicators">
+        <div class="direction-indicator" id="indicator-up">
+            <div class="direction-arrow">⬆</div>
+            <div class="direction-label">上方 (Y+)</div>
+        </div>
+        <div class="direction-indicator" id="indicator-forward">
+            <div class="direction-arrow">↗</div>
+            <div class="direction-label">前方 (Z+)</div>
+        </div>
+        <div class="direction-indicator" id="indicator-left">
+            <div class="direction-arrow">←</div>
+            <div class="direction-label">左方 (X-)</div>
+        </div>
+        <div class="direction-indicator" id="indicator-right">
+            <div class="direction-arrow">→</div>
+            <div class="direction-label">右方 (X+)</div>
+        </div>
+    </div>
+
+    <div id="ui-panel">
+        <h2>控制面板</h2>
+
+        <!-- 專案管理區域 -->
+        <div class="section">
+            <h3 class="section-title">專案管理</h3>
+            <div class="control-group">
+                <div class="button-grid">
+                    <button id="btn-new-project" class="primary-btn">新專案</button>
+                    <button id="btn-save-project" class="secondary-btn">儲存專案</button>
+                    <button id="btn-load-project" class="secondary-btn">載入專案</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="project-name">專案名稱:</label>
+                <input type="text" id="project-name" placeholder="輸入專案名稱" value="未命名專案">
+            </div>
+            <div class="control-group">
+                <label>目前專案:</label>
+                <span id="current-project-display">未命名專案</span>
+            </div>
+        </div>
+
+        <!-- 操作模式區域 -->
+        <div class="section">
+            <h3 class="section-title">操作模式</h3>
+            <div class="control-group">
+                <div class="mode-switcher">
+                    <button id="btn-mode-camera" class="mode-btn active">相機</button>
+                    <button id="btn-mode-point" class="mode-btn">點</button>
+                    <button id="btn-mode-brush" class="mode-btn">筆刷</button>
+                    <button id="btn-mode-eraser" class="mode-btn">橡皮擦</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 粒子設定區域 -->
+        <div class="section">
+            <h3 class="section-title">粒子設定</h3>
+            <div class="control-group">
+                <label for="particle-type">粒子類型:</label>
+                <select id="particle-type">
+                    <option value="flame">火焰 (flame)</option>
+                    <option value="heart">愛心 (heart)</option>
+                    <option value="reddust">紅石 (reddust)</option>
+                    <option value="witch">女巫 (witch)</option>
+                    <option value="note">音符 (note)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="particle-color">粒子顏色:</label>
+                <input type="color" id="particle-color" value="#ff0000">
+            </div>
+        </div>
+
+        <!-- 繪圖設定區域 -->
+        <div class="section">
+            <h3 class="section-title">繪圖設定</h3>
+            <div class="control-group">
+                <label for="drawing-height">繪畫高度:</label>
+                <input type="range" id="drawing-height" min="0" max="10" step="0.1" value="0">
+                <span id="height-display">0.0</span>
+            </div>
+        </div>
+
+        <!-- 平面旋轉區域 -->
+        <div class="section">
+            <h3 class="section-title">平面旋轉</h3>
+            <div class="control-group">
+                <label for="plane-rotation-x">X軸:</label>
+                <input type="range" id="plane-rotation-x" min="-180" max="180" step="1" value="0">
+                <span id="rotation-x-display">0°</span>
+            </div>
+            <div class="control-group">
+                <label for="plane-rotation-y">Y軸:</label>
+                <input type="range" id="plane-rotation-y" min="-180" max="180" step="1" value="0">
+                <span id="rotation-y-display">0°</span>
+            </div>
+            <div class="control-group">
+                <label for="plane-rotation-z">Z軸:</label>
+                <input type="range" id="plane-rotation-z" min="-180" max="180" step="1" value="0">
+                <span id="rotation-z-display">0°</span>
+            </div>
+        </div>
+
+        <!-- 操作按鈕區域 -->
+        <div class="section">
+            <h3 class="section-title">操作</h3>
+            <div class="control-group">
+                <div class="button-grid">
+                    <button id="btn-generate" class="primary-btn">生成程式碼</button>
+                    <button id="btn-clear" class="secondary-btn">清除畫布</button>
+                    <button id="btn-undo" class="secondary-btn">上一步</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 程式碼輸出區域 -->
+        <div class="section">
+            <h3 class="section-title">程式碼輸出</h3>
+            <div class="control-group">
+                <textarea id="code-output" rows="8" readonly placeholder="生成的 MythicMobs 程式碼將顯示在這裡..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

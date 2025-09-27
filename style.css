@@ -1,0 +1,303 @@
+/* 全域重設 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* 基礎樣式 */
+html, body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#scene-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* UI 控制面板樣式 */
+#ui-panel {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    width: 300px;
+    max-height: calc(100vh - 30px);
+    padding: 20px;
+    background-color: rgba(30, 30, 30, 0.9);
+    color: #f0f0f0;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #555 transparent;
+}
+
+#ui-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+#ui-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#ui-panel::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+
+#ui-panel h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 10px;
+    font-size: 18px;
+}
+
+.section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: rgba(40, 40, 40, 0.6);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.control-group {
+    margin-bottom: 12px;
+}
+
+.control-group:last-child {
+    margin-bottom: 0;
+}
+
+.control-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #cccccc;
+}
+
+/* 輸入框與按鈕 */
+select, input[type="color"], input[type="range"], textarea, button {
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background-color: #333;
+    color: #f0f0f0;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* 範圍滑桿特殊樣式 */
+input[type="range"] {
+    height: 25px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+    background: #555;
+    height: 4px;
+    border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #007bff;
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+input[type="range"]::-moz-range-track {
+    background: #555;
+    height: 4px;
+    border-radius: 2px;
+    border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+    background: #007bff;
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+#height-display, #rotation-x-display, #rotation-y-display, #rotation-z-display {
+    display: inline-block;
+    background-color: #444;
+    padding: 4px 8px;
+    border-radius: 3px;
+    margin-left: 10px;
+    font-size: 12px;
+    color: #ccc;
+    min-width: 30px;
+    text-align: center;
+}
+
+input[type="color"] {
+    padding: 4px;
+}
+
+textarea {
+    cursor: text;
+    resize: vertical;
+}
+
+button:not(.mode-btn) {
+    transition: background-color 0.2s;
+}
+
+button:not(.mode-btn):hover {
+    background-color: #5e5e5e;
+}
+
+#btn-generate {
+    background-color: #007bff;
+}
+
+#btn-generate:hover {
+    background-color: #0056b3;
+}
+
+/* 按鈕網格布局 */
+.button-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.primary-btn {
+    background-color: #007bff !important;
+    color: white;
+    font-weight: 600;
+}
+
+.primary-btn:hover {
+    background-color: #0056b3 !important;
+}
+
+.secondary-btn {
+    background-color: #444 !important;
+}
+
+.secondary-btn:hover {
+    background-color: #5e5e5e !important;
+}
+
+/* 模式切換按鈕組 */
+.mode-switcher {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 2px;
+    width: 100%;
+}
+
+.mode-btn {
+    border-radius: 6px;
+    background-color: #444;
+    padding: 10px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+    background-color: #555;
+    transform: translateY(-1px);
+}
+
+.mode-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+#btn-mode-eraser.active {
+    background-color: #dc3545;
+    border-color: #c82333;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+/* 方向指示器樣式 */
+#direction-indicators {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+}
+
+.direction-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: rgba(30, 30, 30, 0.8);
+    color: #f0f0f0;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    font-size: 14px;
+    min-width: 120px;
+}
+
+.direction-arrow {
+    font-size: 18px;
+    font-weight: bold;
+    color: #007bff;
+    text-shadow: 0 0 3px rgba(0, 123, 255, 0.5);
+}
+
+.direction-label {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+#indicator-up .direction-arrow {
+    color: #28a745;
+    text-shadow: 0 0 3px rgba(40, 167, 69, 0.5);
+}
+
+#indicator-forward .direction-arrow {
+    color: #007bff;
+    text-shadow: 0 0 3px rgba(0, 123, 255, 0.5);
+}
+
+#indicator-left .direction-arrow {
+    color: #ff8c00;
+    text-shadow: 0 0 3px rgba(255, 140, 0, 0.5);
+}
+
+#indicator-right .direction-arrow {
+    color: #ff8c00;
+    text-shadow: 0 0 3px rgba(255, 140, 0, 0.5);
+}
