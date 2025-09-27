@@ -282,6 +282,8 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
 #indicator-forward .direction-arrow { color: #0099ff; }
 #indicator-left .direction-arrow, #indicator-right .direction-arrow { color: #ff8c00; }
 
+
+
 /* --- 浮動調色盤 --- */
 #floating-palette {
     position: fixed;
@@ -333,9 +335,32 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
     cursor: pointer;
     border: 2px solid transparent;
     transition: all 0.2s ease;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .color-swatch:hover {
     transform: scale(1.1);
     border-color: var(--primary-color);
+    box-shadow: 0 0 8px rgba(0, 153, 255, 0.4);
+}
+
+.color-swatch.active {
+    border-color: var(--primary-color);
+    border-width: 3px;
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(0, 153, 255, 0.6);
+}
+
+.color-swatch.active::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
 }

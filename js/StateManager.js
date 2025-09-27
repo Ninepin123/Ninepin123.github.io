@@ -11,6 +11,7 @@ class StateManager {
         this.lastPointPosition = null; // This will now be part of the official state.
         this.hasUnsavedChanges = false;
         this.currentProjectName = '未命名專案';
+        
 
         // 監聽器
         this.listeners = [];
@@ -39,7 +40,19 @@ class StateManager {
             lastPointPosition: this.lastPointPosition, // Add to state object
             hasUnsavedChanges: this.hasUnsavedChanges,
             currentProjectName: this.currentProjectName,
+            usedColors: this.getUsedColors(),
         };
+    }
+
+    // --- 取得已使用的顏色列表 ---
+    getUsedColors() {
+        const colors = new Set();
+        this.particlePoints.forEach(point => {
+            if (point.particleType === 'reddust' && point.color) {
+                colors.add(point.color);
+            }
+        });
+        return Array.from(colors).sort();
     }
 
     // --- 狀態修改 ---
@@ -74,10 +87,21 @@ class StateManager {
     }
 
     setParticleSettings(type, color) {
+        console.log(`[StateManager] setParticleSettings 被調用: type=${type}, color=${color}`);
+        console.log(`[StateManager] 修改前: particleType=${this.particleType}, particleColor=${this.particleColor}`);
+        
         this.particleType = type;
         this.particleColor = color;
+        
+        
+        console.log(`[StateManager] 修改後: particleType=${this.particleType}, particleColor=${this.particleColor}`);
+        console.log(`[StateManager] 即將調用 notify()`);
+        
         this.notify();
+        
+        console.log(`[StateManager] notify() 已完成`);
     }
+    
 
     setProjectName(name) {
         this.currentProjectName = name;

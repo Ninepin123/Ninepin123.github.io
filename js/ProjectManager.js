@@ -20,7 +20,10 @@ class ProjectManager {
                 drawingHeight: state.drawingHeight,
                 planeRotation: state.planeRotation,
                 particleType: state.particleType,
-                particleColor: state.particleColor
+                particleColor: state.particleColor,
+                cameraSensitivity: state.cameraSensitivity,
+                redstonePalette: state.redstonePalette,
+                activePaletteIndex: state.activePaletteIndex
             }
         };
     }
