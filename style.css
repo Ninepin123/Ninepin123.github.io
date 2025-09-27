@@ -315,6 +315,11 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
     text-align: center;
 }
 
+#palette-header {
+    cursor: move;
+    padding-bottom: 5px; /* 增加一些底部空間 */
+}
+
 .swatch-container {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
