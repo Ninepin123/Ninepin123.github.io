@@ -87,6 +87,17 @@ class UIManager {
 
         // 設定浮動調色盤可拖動
         this.setupPaletteDragging();
+
+        // 使用事件委派處理調色盤點擊，這樣動態新增的元素也能響應
+        this.paletteSwatches.addEventListener('click', (event) => {
+            const swatch = event.target.closest('.color-swatch');
+            if (swatch && swatch.dataset.color) {
+                const clickedColor = swatch.dataset.color;
+                // 我們可以直接呼叫狀態管理器來更新顏色
+                // stateManager 會通知 UI 更新，包括更新 particleColorInput 的值
+                this.stateManager.setParticleSettings('reddust', clickedColor);
+            }
+        });
     }
 
     setupPaletteDragging() {
@@ -231,12 +242,7 @@ class UIManager {
                 swatch.style.backgroundColor = color;
                 swatch.dataset.color = color; // 將顏色儲存在 data 屬性中
                 swatch.title = color;
-                swatch.addEventListener('click', (event) => {
-                    // 直接從被點擊的元素讀取顏色，避免閉包問題
-                    const clickedColor = event.target.dataset.color;
-                    this.particleColorInput.value = clickedColor;
-                    this.stateManager.setParticleSettings('reddust', clickedColor);
-                });
+                // 事件監聽器已移至 setupEventListeners 中，此處不再需要
                 this.paletteSwatches.appendChild(swatch);
             });
         }
