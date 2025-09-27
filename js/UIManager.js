@@ -12,6 +12,8 @@ class UIManager {
         this.particleColorInput = document.querySelector('#particle-color');
         this.drawingHeightSlider = document.querySelector('#drawing-height');
         this.heightDisplay = document.querySelector('#height-display');
+        this.cameraSensitivitySlider = document.querySelector('#camera-sensitivity');
+        this.sensitivityDisplay = document.querySelector('#sensitivity-display');
         this.planeRotationXSlider = document.querySelector('#plane-rotation-x');
         this.planeRotationYSlider = document.querySelector('#plane-rotation-y');
         this.planeRotationZSlider = document.querySelector('#plane-rotation-z');
@@ -56,6 +58,7 @@ class UIManager {
 
         // 繪圖設定
         this.drawingHeightSlider.addEventListener('input', (e) => this.stateManager.setDrawingHeight(parseFloat(e.target.value)));
+        this.cameraSensitivitySlider.addEventListener('input', (e) => this.stateManager.setCameraSensitivity(parseFloat(e.target.value)));
 
         // 平面旋轉
         this.planeRotationXSlider.addEventListener('input', () => this.handlePlaneRotationChange());
@@ -115,6 +118,10 @@ class UIManager {
         // 更新繪圖高度
         this.drawingHeightSlider.value = state.drawingHeight;
         this.heightDisplay.textContent = state.drawingHeight.toFixed(1);
+
+        // 更新相機靈敏度
+        this.cameraSensitivitySlider.value = state.cameraSensitivity;
+        this.sensitivityDisplay.textContent = state.cameraSensitivity.toFixed(1);
 
         // 更新平面旋轉
         this.planeRotationXSlider.value = state.planeRotation.x;
