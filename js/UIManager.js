@@ -36,6 +36,7 @@ class UIManager {
 
         // --- 浮動調色盤 ---
         this.floatingPalette = document.querySelector('#floating-palette');
+        this.paletteHeader = document.querySelector('#palette-header'); // 新增標頭參照
         this.paletteSwatches = document.querySelector('#palette-swatches');
 
         // --- 模式按鈕 ---
@@ -83,6 +84,63 @@ class UIManager {
 
         // 專案管理
         this.projectNameInput.addEventListener('input', (e) => this.stateManager.setProjectName(e.target.value));
+
+        // 設定浮動調色盤可拖動
+        this.setupPaletteDragging();
+    }
+
+    setupPaletteDragging() {
+        let isDragging = false;
+        let offsetX, offsetY;
+
+        const onMouseDown = (e) => {
+            isDragging = true;
+            // 計算滑鼠點擊位置相對於調色盤左上角的偏移
+            offsetX = e.clientX - this.floatingPalette.offsetLeft;
+            offsetY = e.clientY - this.floatingPalette.offsetTop;
+
+            // 移除可能影響拖曳的 transition 效果
+            this.floatingPalette.style.transition = 'none';
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+
+            // 計算調色盤的新位置
+            let newX = e.clientX - offsetX;
+            let newY = e.clientY - offsetY;
+
+            // 確保調色盤不會被拖出視窗外
+            const paletteRect = this.floatingPalette.getBoundingClientRect();
+            const bodyRect = document.body.getBoundingClientRect();
+
+            if (newX < 0) newX = 0;
+            if (newY < 0) newY = 0;
+            if (newX + paletteRect.width > bodyRect.width) newX = bodyRect.width - paletteRect.width;
+            if (newY + paletteRect.height > bodyRect.height) newY = bodyRect.height - paletteRect.height;
+
+
+            this.floatingPalette.style.left = `${newX}px`;
+            this.floatingPalette.style.top = `${newY}px`;
+
+            // 拖曳時移除 bottom 和 transform 樣式，以 left/top 為主
+            this.floatingPalette.style.bottom = 'auto';
+            this.floatingPalette.style.transform = 'none';
+        };
+
+        const onMouseUp = () => {
+            isDragging = false;
+            // 恢復 transition 效果
+            this.floatingPalette.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        this.paletteHeader.addEventListener('mousedown', onMouseDown);
     }
 
     // --- 事件處理函式 ---
