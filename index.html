@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MythicMobs 粒子特效 3D 繪圖器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -32,30 +35,35 @@
     <div id="ui-panel">
         <h2>控制面板</h2>
 
-        <!-- 專案管理區域 -->
+        <!-- 專案管理 -->
         <div class="section">
             <h3 class="section-title">專案管理</h3>
-            <div class="control-group">
-                <div class="button-grid">
-                    <button id="btn-new-project" class="primary-btn">新專案</button>
-                    <button id="btn-save-project" class="secondary-btn">儲存專案</button>
-                    <button id="btn-load-project" class="secondary-btn">載入專案</button>
-                </div>
-            </div>
             <div class="control-group">
                 <label for="project-name">專案名稱:</label>
                 <input type="text" id="project-name" placeholder="輸入專案名稱" value="未命名專案">
             </div>
             <div class="control-group">
-                <label>目前專案:</label>
-                <span id="current-project-display">未命名專案</span>
+                <div class="button-grid">
+                    <button id="btn-save-project" class="secondary-btn">儲存</button>
+                    <button id="btn-load-project" class="secondary-btn">載入</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="button-grid full-width">
+                     <button id="btn-new-project" class="primary-btn">建立新專案</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>目前專案狀態:</label>
+                <div id="current-project-display">未命名專案</div>
             </div>
         </div>
 
-        <!-- 操作模式區域 -->
+        <!-- 繪圖工具 -->
         <div class="section">
-            <h3 class="section-title">操作模式</h3>
+            <h3 class="section-title">繪圖工具</h3>
             <div class="control-group">
+                <label>操作模式:</label>
                 <div class="mode-switcher">
                     <button id="btn-mode-camera" class="mode-btn active">相機</button>
                     <button id="btn-mode-point" class="mode-btn">點</button>
@@ -63,9 +71,16 @@
                     <button id="btn-mode-eraser" class="mode-btn">橡皮擦</button>
                 </div>
             </div>
+            <div class="control-group">
+                <label for="drawing-height">繪畫高度:</label>
+                <div class="slider-group">
+                    <input type="range" id="drawing-height" min="0" max="10" step="0.1" value="0">
+                    <span id="height-display" class="slider-display">0.0</span>
+                </div>
+            </div>
         </div>
         
-        <!-- 粒子設定區域 -->
+        <!-- 粒子設定 -->
         <div class="section">
             <h3 class="section-title">粒子設定</h3>
             <div class="control-group">
@@ -79,58 +94,53 @@
                 </select>
             </div>
             <div class="control-group">
-                <label for="particle-color">粒子顏色:</label>
+                <label for="particle-color">粒子顏色 (僅限紅石):</label>
                 <input type="color" id="particle-color" value="#ff0000">
             </div>
         </div>
 
-        <!-- 繪圖設定區域 -->
+        <!-- 平面旋轉 (進階) -->
         <div class="section">
-            <h3 class="section-title">繪圖設定</h3>
+            <h3 class="section-title">平面旋轉 (進階)</h3>
             <div class="control-group">
-                <label for="drawing-height">繪畫高度:</label>
-                <input type="range" id="drawing-height" min="0" max="10" step="0.1" value="0">
-                <span id="height-display">0.0</span>
-            </div>
-        </div>
-
-        <!-- 平面旋轉區域 -->
-        <div class="section">
-            <h3 class="section-title">平面旋轉</h3>
-            <div class="control-group">
-                <label for="plane-rotation-x">X軸:</label>
-                <input type="range" id="plane-rotation-x" min="-180" max="180" step="1" value="0">
-                <span id="rotation-x-display">0°</span>
+                <label for="plane-rotation-x">X軸 旋轉:</label>
+                <div class="slider-group">
+                    <input type="range" id="plane-rotation-x" min="-180" max="180" step="1" value="0">
+                    <span id="rotation-x-display" class="slider-display">0°</span>
+                </div>
             </div>
             <div class="control-group">
-                <label for="plane-rotation-y">Y軸:</label>
-                <input type="range" id="plane-rotation-y" min="-180" max="180" step="1" value="0">
-                <span id="rotation-y-display">0°</span>
+                <label for="plane-rotation-y">Y軸 旋轉:</label>
+                <div class="slider-group">
+                    <input type="range" id="plane-rotation-y" min="-180" max="180" step="1" value="0">
+                    <span id="rotation-y-display" class="slider-display">0°</span>
+                </div>
             </div>
             <div class="control-group">
-                <label for="plane-rotation-z">Z軸:</label>
-                <input type="range" id="plane-rotation-z" min="-180" max="180" step="1" value="0">
-                <span id="rotation-z-display">0°</span>
-            </div>
-        </div>
-
-        <!-- 操作按鈕區域 -->
-        <div class="section">
-            <h3 class="section-title">操作</h3>
-            <div class="control-group">
-                <div class="button-grid">
-                    <button id="btn-generate" class="primary-btn">生成程式碼</button>
-                    <button id="btn-clear" class="secondary-btn">清除畫布</button>
-                    <button id="btn-undo" class="secondary-btn">上一步</button>
+                <label for="plane-rotation-z">Z軸 旋轉:</label>
+                <div class="slider-group">
+                    <input type="range" id="plane-rotation-z" min="-180" max="180" step="1" value="0">
+                    <span id="rotation-z-display" class="slider-display">0°</span>
                 </div>
             </div>
         </div>
 
-        <!-- 程式碼輸出區域 -->
+        <!-- 操作與輸出 -->
         <div class="section">
-            <h3 class="section-title">程式碼輸出</h3>
+            <h3 class="section-title">操作與輸出</h3>
+             <div class="control-group">
+                <div class="button-grid">
+                    <button id="btn-undo" class="secondary-btn">上一步</button>
+                    <button id="btn-clear" class="secondary-btn">清除畫布</button>
+                </div>
+            </div>
             <div class="control-group">
-                <textarea id="code-output" rows="8" readonly placeholder="生成的 MythicMobs 程式碼將顯示在這裡..."></textarea>
+                 <div class="button-grid full-width">
+                    <button id="btn-generate" class="primary-btn">生成程式碼</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <textarea id="code-output" rows="6" readonly placeholder="生成的 MythicMobs 程式碼將顯示在這裡..."></textarea>
             </div>
         </div>
     </div>
