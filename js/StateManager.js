@@ -7,7 +7,7 @@ class StateManager {
         this.particleType = 'flame';
         this.particleColor = '#ff0000';
         this.isDrawing = false;
-        this.lastPointPosition = null;
+        this.lastPointPosition = null; // This will now be part of the official state.
         this.hasUnsavedChanges = false;
         this.currentProjectName = '未命名專案';
 
@@ -34,6 +34,7 @@ class StateManager {
             particleType: this.particleType,
             particleColor: this.particleColor,
             isDrawing: this.isDrawing,
+            lastPointPosition: this.lastPointPosition, // Add to state object
             hasUnsavedChanges: this.hasUnsavedChanges,
             currentProjectName: this.currentProjectName,
         };
@@ -45,12 +46,14 @@ class StateManager {
         this.notify();
     }
 
-    setDrawing(isDrawing, lastPosition = null) {
+    setDrawing(isDrawing) {
         this.isDrawing = isDrawing;
-        if (lastPosition) {
-            this.lastPointPosition = lastPosition;
-        }
         this.notify();
+    }
+
+    setLastPointPosition(position) {
+        this.lastPointPosition = position;
+        // We don't notify here, as this is an internal state for the brush stroke
     }
 
     setDrawingHeight(height) {
@@ -116,6 +119,7 @@ class StateManager {
     loadProject(projectData) {
         this.clearPoints();
         this.currentProjectName = projectData.name || '未命名專案';
+        this.lastPointPosition = null; // Reset on new project
 
         if (projectData.settings) {
             this.drawingHeight = projectData.settings.drawingHeight || 0;

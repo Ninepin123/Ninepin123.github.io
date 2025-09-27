@@ -17,9 +17,6 @@ class App {
 
         this.connectModules();
         this.setupEventListeners();
-
-        // Re-add the debug helper. Now that we use a server, it will be accessible.
-        window.getPointCount = () => this.stateManager.getState().particlePoints.length;
     }
 
     connectModules() {
@@ -88,7 +85,7 @@ class App {
                     particleType: state.particleType, color: state.particleColor
                 };
                 this.stateManager.addPoint(pointData);
-                this.stateManager.lastPointPosition = intersectPoint;
+                this.stateManager.setLastPointPosition(intersectPoint);
             } else if (state.currentMode === 'eraser') {
                 this.eraseAtPosition(intersectPoint);
             }
@@ -101,7 +98,7 @@ class App {
 
     handleMouseMove(event) {
         const state = this.stateManager.getState();
-        if (!state.isDrawing) return;
+        if (!state.isDrawing || !state.lastPointPosition) return;
 
         const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation);
         if (!intersectPoint) return;
@@ -115,7 +112,7 @@ class App {
                     particleType: state.particleType, color: state.particleColor
                 };
                 this.stateManager.addPoint(pointData);
-                this.stateManager.lastPointPosition = intersectPoint;
+                this.stateManager.setLastPointPosition(intersectPoint); // Use the new method
             }
         } else if (state.currentMode === 'eraser') {
             this.eraseAtPosition(intersectPoint);
@@ -124,6 +121,7 @@ class App {
 
     handleMouseUp() {
         this.stateManager.setDrawing(false);
+        this.stateManager.setLastPointPosition(null); // Clear the last position on mouse up
     }
     
     eraseAtPosition(position, radius = 0.5) {
