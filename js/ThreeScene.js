@@ -130,6 +130,12 @@ class ThreeScene {
         // this.controls.update();
         this.renderer.render(this.scene, this.camera);
     }
+
+    updateCameraSensitivity(sensitivity) {
+        this.controls.rotateSpeed = sensitivity;
+        this.controls.zoomSpeed = sensitivity;
+        this.controls.panSpeed = sensitivity;
+    }
 }
 
 export default ThreeScene;
