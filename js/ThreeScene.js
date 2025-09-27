@@ -117,12 +117,6 @@ class ThreeScene {
         this.heightGridHelper.visible = height > 0.05;
     }
 
-    updateCameraSensitivity(sensitivity) {
-        this.controls.zoomSpeed = sensitivity;
-        this.controls.panSpeed = sensitivity;
-        this.controls.rotateSpeed = sensitivity;
-    }
-
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();

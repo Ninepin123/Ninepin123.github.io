@@ -91,18 +91,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- 相機設定 -->
-        <div class="section">
-            <h3 class="section-title">相機設定</h3>
-            <div class="control-group">
-                <label for="camera-sensitivity">相機靈敏度:</label>
-                <div class="slider-group">
-                    <input type="range" id="camera-sensitivity" min="0.1" max="3" step="0.1" value="1">
-                    <span id="sensitivity-display" class="slider-display">1.0</span>
-                </div>
-            </div>
-        </div>
         
         <!-- 粒子設定 -->
         <div class="section">
@@ -159,13 +147,22 @@
                 </div>
             </div>
             <div class="control-group">
-                 <div class="button-grid full-width">
+                <div class="button-grid">
                     <button id="btn-generate" class="primary-btn">生成程式碼</button>
+                    <button id="btn-copy-code" class="secondary-btn">複製</button>
                 </div>
             </div>
             <div class="control-group">
                 <textarea id="code-output" rows="6" readonly placeholder="生成的 MythicMobs 程式碼將顯示在這裡..."></textarea>
             </div>
+        </div>
+    </div>
+
+    <!-- 浮動調色盤 -->
+    <div id="floating-palette" class="hidden">
+        <h4 class="palette-title">專案顏色</h4>
+        <div id="palette-swatches" class="swatch-container">
+            <!-- 顏色樣本將由 JS 動態生成 -->
         </div>
     </div>
 

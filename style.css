@@ -281,3 +281,56 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
 #indicator-up .direction-arrow { color: #28a745; }
 #indicator-forward .direction-arrow { color: #0099ff; }
 #indicator-left .direction-arrow, #indicator-right .direction-arrow { color: #ff8c00; }
+
+/* --- 浮動調色盤 --- */
+#floating-palette {
+    position: fixed;
+    bottom: 20px;
+    left: 15px;
+    padding: 12px;
+    background-color: var(--panel-bg-color);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 200;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#floating-palette.hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+}
+
+.palette-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted-color);
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.swatch-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+    border-color: var(--primary-color);
+}

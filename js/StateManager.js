@@ -11,7 +11,6 @@ class StateManager {
         this.lastPointPosition = null; // This will now be part of the official state.
         this.hasUnsavedChanges = false;
         this.currentProjectName = '未命名專案';
-        this.cameraSensitivity = 1; // 新增相機靈敏度屬性
 
         // 監聽器
         this.listeners = [];
@@ -40,15 +39,10 @@ class StateManager {
             lastPointPosition: this.lastPointPosition, // Add to state object
             hasUnsavedChanges: this.hasUnsavedChanges,
             currentProjectName: this.currentProjectName,
-            cameraSensitivity: this.cameraSensitivity,
         };
     }
 
     // --- 狀態修改 ---
-    setCameraSensitivity(sensitivity) {
-        this.cameraSensitivity = sensitivity;
-        this.notify();
-    }
     setMode(mode) {
         this.currentMode = mode;
         this.notify();
@@ -140,7 +134,6 @@ class StateManager {
             this.cameraSensitivity = projectData.settings.cameraSensitivity || 1.0;
             this.particleType = projectData.settings.particleType || 'flame';
             this.particleColor = projectData.settings.particleColor || '#ff0000';
-            this.cameraSensitivity = projectData.settings.cameraSensitivity || 1;
         }
 
         if (projectData.particles) {
