@@ -42,6 +42,7 @@ class App {
         // 更新場景設定，如繪圖高度、平面旋轉和相機控制
         this.sceneManager.updateHeight(state.drawingHeight);
         this.sceneManager.updatePlaneRotation(state.planeRotation);
+        this.sceneManager.updateCameraSensitivity(state.cameraSensitivity); // 新增呼叫
         this.sceneManager.controls.enabled = (state.currentMode === 'camera' || !state.isDrawing);
 
         // --- 3D 物件與狀態同步 ---
