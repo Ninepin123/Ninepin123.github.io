@@ -116,7 +116,7 @@ class App {
                     particleType: state.particleType, color: state.particleColor
                 };
                 this.stateManager.addPoint(pointData);
-                this.stateManager.setLastPointPosition(intersectPoint); // Use the new method
+                this.stateManager.setLastPointPosition(intersectPoint); // Correctly update the last position
             }
         } else if (state.currentMode === 'eraser') {
             this.eraseAtPosition(intersectPoint);

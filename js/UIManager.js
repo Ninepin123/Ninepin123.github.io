@@ -12,8 +12,6 @@ class UIManager {
         this.particleColorInput = document.querySelector('#particle-color');
         this.drawingHeightSlider = document.querySelector('#drawing-height');
         this.heightDisplay = document.querySelector('#height-display');
-        this.cameraSensitivitySlider = document.querySelector('#camera-sensitivity');
-        this.sensitivityDisplay = document.querySelector('#sensitivity-display');
         this.planeRotationXSlider = document.querySelector('#plane-rotation-x');
         this.planeRotationYSlider = document.querySelector('#plane-rotation-y');
         this.planeRotationZSlider = document.querySelector('#plane-rotation-z');
@@ -26,9 +24,19 @@ class UIManager {
         this.sensitivityDisplay = document.querySelector('#sensitivity-display');
 
         this.generateBtn = document.querySelector('#btn-generate');
+        this.copyCodeBtn = document.querySelector('#btn-copy-code'); // 新增複製按鈕的參照
         this.clearBtn = document.querySelector('#btn-clear');
         this.undoBtn = document.querySelector('#btn-undo');
         this.codeOutput = document.querySelector('#code-output');
+
+        this.copyCodeBtn = document.querySelector('#btn-copy-code'); // 新增複製按鈕的參照
+        this.clearBtn = document.querySelector('#btn-clear');
+        this.undoBtn = document.querySelector('#btn-undo');
+        this.codeOutput = document.querySelector('#code-output');
+
+        // --- 浮動調色盤 ---
+        this.floatingPalette = document.querySelector('#floating-palette');
+        this.paletteSwatches = document.querySelector('#palette-swatches');
 
         // --- 模式按鈕 ---
         this.modeButtons = {
@@ -58,7 +66,6 @@ class UIManager {
 
         // 繪圖設定
         this.drawingHeightSlider.addEventListener('input', (e) => this.stateManager.setDrawingHeight(parseFloat(e.target.value)));
-        this.cameraSensitivitySlider.addEventListener('input', (e) => this.stateManager.setCameraSensitivity(parseFloat(e.target.value)));
 
         // 平面旋轉
         this.planeRotationXSlider.addEventListener('input', () => this.handlePlaneRotationChange());
@@ -70,6 +77,7 @@ class UIManager {
 
         // 操作按鈕
         this.generateBtn.addEventListener('click', () => this.generateCode());
+        this.copyCodeBtn.addEventListener('click', () => this.copyCode()); // 新增事件監聽器
         this.clearBtn.addEventListener('click', () => this.requestClear());
         this.undoBtn.addEventListener('click', () => this.stateManager.undoLastPoint());
 
@@ -119,10 +127,6 @@ class UIManager {
         this.drawingHeightSlider.value = state.drawingHeight;
         this.heightDisplay.textContent = state.drawingHeight.toFixed(1);
 
-        // 更新相機靈敏度
-        this.cameraSensitivitySlider.value = state.cameraSensitivity;
-        this.sensitivityDisplay.textContent = state.cameraSensitivity.toFixed(1);
-
         // 更新平面旋轉
         this.planeRotationXSlider.value = state.planeRotation.x;
         this.rotationXDisplay.textContent = `${state.planeRotation.x}°`;
@@ -141,9 +145,67 @@ class UIManager {
 
         // 清除程式碼輸出
         if (this.codeOutput.value) this.codeOutput.value = '';
+
+        this.updateFloatingPalette(state);
     }
 
-    // --- 程式碼生成 ---
+    updateFloatingPalette(state) {
+        const isReddustMode = state.particleType === 'reddust';
+        this.floatingPalette.classList.toggle('hidden', !isReddustMode);
+
+        if (isReddustMode) {
+            // 從粒子點中提取所有獨一無二的顏色
+            const uniqueColors = [...new Set(state.particlePoints.map(p => p.color))];
+
+            // 清除舊的顏色樣本
+            this.paletteSwatches.innerHTML = '';
+
+            if (uniqueColors.length === 0) {
+                // 如果沒有顏色，可以顯示一則訊息
+                this.paletteSwatches.textContent = '尚無顏色';
+                return;
+            }
+
+            // 為每個獨一無二的顏色建立一個樣本
+            uniqueColors.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = color;
+                swatch.dataset.color = color; // 將顏色儲存在 data 屬性中
+                swatch.title = color;
+                swatch.addEventListener('click', (event) => {
+                    // 直接從被點擊的元素讀取顏色，避免閉包問題
+                    const clickedColor = event.target.dataset.color;
+                    this.particleColorInput.value = clickedColor;
+                    this.stateManager.setParticleSettings('reddust', clickedColor);
+                });
+                this.paletteSwatches.appendChild(swatch);
+            });
+        }
+    }
+
+    // --- 程式碼生成與複製 ---
+    copyCode() {
+        const code = this.codeOutput.value;
+        if (!code || code === "畫布上沒有任何粒子點，請先點擊繪製！") {
+            // 可選擇性地提供回饋，例如按鈕閃爍
+            return;
+        }
+
+        navigator.clipboard.writeText(code).then(() => {
+            const originalText = this.copyCodeBtn.textContent;
+            this.copyCodeBtn.textContent = '已複製!';
+            this.copyCodeBtn.style.backgroundColor = '#28a745'; // 綠色表示成功
+            setTimeout(() => {
+                this.copyCodeBtn.textContent = originalText;
+                this.copyCodeBtn.style.backgroundColor = ''; // 恢復原色
+            }, 1500);
+        }).catch(err => {
+            console.error('無法複製程式碼: ', err);
+            alert('複製失敗，請手動複製。');
+        });
+    }
+
     generateCode() {
         const state = this.stateManager.getState();
         if (state.particlePoints.length === 0) {
