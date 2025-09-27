@@ -72,7 +72,10 @@ class App {
 
     handleMouseDown(event) {
         const state = this.stateManager.getState();
-        if (state.currentMode === 'camera') return;
+        // 在相機模式下，不執行任何操作，以避免與 OrbitControls 的事件衝突。
+        if (state.currentMode === 'camera') {
+            return;
+        }
 
         this.stateManager.setDrawing(true);
         const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation);
