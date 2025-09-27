@@ -20,6 +20,11 @@ class UIManager {
         this.rotationXDisplay = document.querySelector('#rotation-x-display');
         this.rotationYDisplay = document.querySelector('#rotation-y-display');
         this.rotationZDisplay = document.querySelector('#rotation-z-display');
+
+        // --- 攝影機設定 ---
+        this.cameraSensitivitySlider = document.querySelector('#camera-sensitivity');
+        this.sensitivityDisplay = document.querySelector('#sensitivity-display');
+
         this.generateBtn = document.querySelector('#btn-generate');
         this.clearBtn = document.querySelector('#btn-clear');
         this.undoBtn = document.querySelector('#btn-undo');
@@ -59,6 +64,9 @@ class UIManager {
         this.planeRotationXSlider.addEventListener('input', () => this.handlePlaneRotationChange());
         this.planeRotationYSlider.addEventListener('input', () => this.handlePlaneRotationChange());
         this.planeRotationZSlider.addEventListener('input', () => this.handlePlaneRotationChange());
+
+        // 攝影機靈敏度
+        this.cameraSensitivitySlider.addEventListener('input', (e) => this.stateManager.setCameraSensitivity(parseFloat(e.target.value)));
 
         // 操作按鈕
         this.generateBtn.addEventListener('click', () => this.generateCode());
@@ -122,6 +130,10 @@ class UIManager {
         this.rotationYDisplay.textContent = `${state.planeRotation.y}°`;
         this.planeRotationZSlider.value = state.planeRotation.z;
         this.rotationZDisplay.textContent = `${state.planeRotation.z}°`;
+
+        // 更新攝影機靈敏度顯示
+        this.cameraSensitivitySlider.value = state.cameraSensitivity;
+        this.sensitivityDisplay.textContent = state.cameraSensitivity.toFixed(1);
 
         // 更新專案顯示
         this.projectNameInput.value = state.currentProjectName;

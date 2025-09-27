@@ -4,6 +4,7 @@ class StateManager {
         this.currentMode = 'camera'; // 'camera', 'point', 'brush', 'eraser'
         this.drawingHeight = 0;
         this.planeRotation = { x: 0, y: 0, z: 0 };
+        this.cameraSensitivity = 1.0; // 新增相機靈敏度狀態
         this.particleType = 'flame';
         this.particleColor = '#ff0000';
         this.isDrawing = false;
@@ -32,6 +33,7 @@ class StateManager {
             currentMode: this.currentMode,
             drawingHeight: this.drawingHeight,
             planeRotation: this.planeRotation,
+            cameraSensitivity: this.cameraSensitivity, // 在狀態物件中回傳
             particleType: this.particleType,
             particleColor: this.particleColor,
             isDrawing: this.isDrawing,
@@ -69,6 +71,11 @@ class StateManager {
 
     setPlaneRotation(rotation) {
         this.planeRotation = rotation;
+        this.notify();
+    }
+
+    setCameraSensitivity(sensitivity) {
+        this.cameraSensitivity = sensitivity;
         this.notify();
     }
 
@@ -130,6 +137,7 @@ class StateManager {
         if (projectData.settings) {
             this.drawingHeight = projectData.settings.drawingHeight || 0;
             this.planeRotation = projectData.settings.planeRotation || { x: 0, y: 0, z: 0 };
+            this.cameraSensitivity = projectData.settings.cameraSensitivity || 1.0;
             this.particleType = projectData.settings.particleType || 'flame';
             this.particleColor = projectData.settings.particleColor || '#ff0000';
             this.cameraSensitivity = projectData.settings.cameraSensitivity || 1;

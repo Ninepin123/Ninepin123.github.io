@@ -42,7 +42,7 @@ class App {
         // 更新場景設定，如繪圖高度、平面旋轉和相機控制
         this.sceneManager.updateHeight(state.drawingHeight);
         this.sceneManager.updatePlaneRotation(state.planeRotation);
-        this.sceneManager.updateCameraSensitivity(state.cameraSensitivity); // 新增呼叫
+        this.sceneManager.updateCameraSensitivity(state.cameraSensitivity); // 更新相機靈敏度
         this.sceneManager.controls.enabled = (state.currentMode === 'camera' || !state.isDrawing);
 
         // --- 3D 物件與狀態同步 ---
@@ -73,7 +73,10 @@ class App {
 
     handleMouseDown(event) {
         const state = this.stateManager.getState();
-        if (state.currentMode === 'camera') return;
+        // 在相機模式下，不執行任何操作，以避免與 OrbitControls 的事件衝突。
+        if (state.currentMode === 'camera') {
+            return;
+        }
 
         this.stateManager.setDrawing(true);
         const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation);

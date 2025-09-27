@@ -21,8 +21,7 @@ class ThreeScene {
         this.renderer.setPixelRatio(window.devicePixelRatio);
 
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
+        this.controls.enableDamping = false; // 停用阻尼以獲得更即時的反應
         this.controls.target.set(0, 0, 0);
 
         this.raycaster = new THREE.Raycaster();
@@ -133,8 +132,15 @@ class ThreeScene {
 
     animate() {
         requestAnimationFrame(() => this.animate());
-        this.controls.update();
+        // 當 enableDamping 為 false 時，不再需要在每一幀都呼叫 controls.update()
+        // this.controls.update();
         this.renderer.render(this.scene, this.camera);
+    }
+
+    updateCameraSensitivity(sensitivity) {
+        this.controls.rotateSpeed = sensitivity;
+        this.controls.zoomSpeed = sensitivity;
+        this.controls.panSpeed = sensitivity;
     }
 }
 
