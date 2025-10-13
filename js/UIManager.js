@@ -53,6 +53,20 @@ class UIManager {
             circle: document.querySelector('#btn-mode-circle'),
         };
 
+        // --- 橡皮擦模式按鈕 ---
+        this.eraserModeButtons = {
+            point: document.querySelector('#btn-eraser-mode-point'),
+            group: document.querySelector('#btn-eraser-mode-group'),
+        };
+        this.eraserModeGroup = document.querySelector('#eraser-mode-group');
+
+        // --- 形狀填充模式按鈕 ---
+        this.shapeFillModeButtons = {
+            filled: document.querySelector('#btn-shape-fill-filled'),
+            outline: document.querySelector('#btn-shape-fill-outline'),
+        };
+        this.shapeFillModeGroup = document.querySelector('#shape-fill-mode-group');
+
         // --- 專案管理 ---
         this.newProjectBtn = document.querySelector('#btn-new-project');
         this.saveProjectBtn = document.querySelector('#btn-save-project');
@@ -67,6 +81,16 @@ class UIManager {
         // 模式切換
         Object.entries(this.modeButtons).forEach(([mode, button]) => {
             button.addEventListener('click', () => this.stateManager.setMode(mode));
+        });
+
+        // 橡皮擦模式切換
+        Object.entries(this.eraserModeButtons).forEach(([mode, button]) => {
+            button.addEventListener('click', () => this.stateManager.setEraserMode(mode));
+        });
+
+        // 形狀填充模式切換
+        Object.entries(this.shapeFillModeButtons).forEach(([mode, button]) => {
+            button.addEventListener('click', () => this.stateManager.setShapeFillMode(mode));
         });
 
         // 粒子設定
@@ -283,7 +307,8 @@ class UIManager {
     }
 
     requestClear() {
-        if (this.stateManager.getState().particlePoints.length > 0) {
+        const state = this.stateManager.getState();
+        if (state.particlePoints.length > 0 || state.drawingGroups.length > 0) {
             if (confirm('確定要清除所有粒子點嗎？此操作無法復原。')) {
                 this.stateManager.clearPoints();
             }
@@ -296,6 +321,23 @@ class UIManager {
         Object.entries(this.modeButtons).forEach(([mode, button]) => {
             button.classList.toggle('active', mode === state.currentMode);
         });
+
+        // 更新橡皮擦模式按鈕
+        Object.entries(this.eraserModeButtons).forEach(([mode, button]) => {
+            button.classList.toggle('active', mode === state.eraserMode);
+        });
+
+        // 顯示/隱藏橡皮擦模式控制
+        this.eraserModeGroup.style.display = state.currentMode === 'eraser' ? 'block' : 'none';
+
+        // 更新形狀填充模式按鈕
+        Object.entries(this.shapeFillModeButtons).forEach(([mode, button]) => {
+            button.classList.toggle('active', mode === state.shapeFillMode);
+        });
+
+        // 顯示/隱藏形狀填充模式控制
+        this.shapeFillModeGroup.style.display =
+            (state.currentMode === 'rectangle' || state.currentMode === 'circle') ? 'block' : 'none';
 
         // 更新粒子設定
         console.log(`[UIManager] updateUI - 更新粒子設定: type=${state.particleType}, color=${state.particleColor}`);

@@ -3,6 +3,8 @@ class StateManager {
         this.particlePoints = [];
         this.drawingGroups = []; // 新增：儲存繪圖群組
         this.currentMode = 'camera'; // 'camera', 'select', 'point', 'brush', 'eraser', 'rectangle', 'circle'
+        this.eraserMode = 'point'; // 新增：橡皮擦模式 'point' 或 'group'
+        this.shapeFillMode = 'filled'; // 新增：圖形填充模式 'filled' 或 'outline'
         this.drawingHeight = 0;
         this.planeRotation = { x: 0, y: 0, z: 0 };
         this.cameraSensitivity = 1.0;
@@ -36,6 +38,8 @@ class StateManager {
             particlePoints: this.particlePoints,
             drawingGroups: this.drawingGroups,
             currentMode: this.currentMode,
+            eraserMode: this.eraserMode,
+            shapeFillMode: this.shapeFillMode,
             drawingHeight: this.drawingHeight,
             planeRotation: this.planeRotation,
             cameraSensitivity: this.cameraSensitivity,
@@ -66,6 +70,16 @@ class StateManager {
     // --- 狀態修改 ---
     setMode(mode) {
         this.currentMode = mode;
+        this.notify();
+    }
+
+    setEraserMode(mode) {
+        this.eraserMode = mode;
+        this.notify();
+    }
+
+    setShapeFillMode(mode) {
+        this.shapeFillMode = mode;
         this.notify();
     }
 
@@ -146,12 +160,24 @@ class StateManager {
     }
 
     undoLastPoint() {
-        const lastPoint = this.particlePoints.pop();
-        if (lastPoint) {
-            this.setUnsavedChanges(true);
+        // 優先撤銷最後添加的群組，如果沒有群組則撤銷獨立粒子點
+        if (this.drawingGroups.length > 0) {
+            const lastGroup = this.drawingGroups.pop();
+            if (lastGroup) {
+                this.setUnsavedChanges(true);
+            }
+            this.notify();
+            return lastGroup;
+        } else if (this.particlePoints.length > 0) {
+            const lastPoint = this.particlePoints.pop();
+            if (lastPoint) {
+                this.setUnsavedChanges(true);
+            }
+            this.notify();
+            return lastPoint;
         }
         this.notify();
-        return lastPoint;
+        return null;
     }
 
     removePoints(pointsToRemove) {

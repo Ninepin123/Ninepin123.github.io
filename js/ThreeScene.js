@@ -71,9 +71,13 @@ class ThreeScene {
     }
 
     addPoint(pointData) {
-        const { point, color, particleType } = pointData;
+        const { point, color, particleType, opacity = 1.0 } = pointData;
         const sphereGeometry = new THREE.SphereGeometry(0.08, 16, 16);
-        const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: opacity < 1.0,
+            opacity: opacity
+        });
         const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
         sphereMesh.position.copy(point);
         this.scene.add(sphereMesh);
@@ -82,6 +86,21 @@ class ThreeScene {
 
     removeObject(object) {
         if (object) {
+            // Dispose geometry
+            if (object.geometry) {
+                object.geometry.dispose();
+            }
+
+            // Dispose material(s)
+            if (object.material) {
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(mat => mat.dispose());
+                } else {
+                    object.material.dispose();
+                }
+            }
+
+            // Remove from scene
             this.scene.remove(object);
         }
     }
