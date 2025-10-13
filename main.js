@@ -29,6 +29,23 @@ class App {
         this.BRUSH_RADIUS = 0.3; // 筆刷預覽半徑
         this.ERASER_RADIUS = 0.5; // 橡皮擦預覽半徑
 
+        // 選取/拖動相關狀態
+        this.selectedGroupId = null;
+        this.isDraggingSelection = false;
+        this.dragStartPoint = null;
+        this.selectedGroupStartCenter = null;
+        this.multiSelectedGroupIds = new Set();
+        this.selectedGroupsStartCenters = new Map();
+
+        // 框選狀態與元素
+        this.isMarqueeSelecting = false;
+        this.marqueeStartScreen = null; // {x, y}
+        this.selectionRectEl = null;
+
+        // 拖動平面（與相機正對，通過選取中心）
+        this.dragPlane = null;
+        this.dragStartOnPlane = null;
+
         this.connectModules();
         this.setupEventListeners();
         this.initLocalStorage();
@@ -108,6 +125,11 @@ class App {
                 // 現有群組：檢查是否需要更新
                 const group = this.groupObjectMap.get(groupData.id);
 
+                // 拖動期間，不覆寫本地群組位置/邊界，避免碰撞箱回彈
+                if (this.isDraggingSelection && group) {
+                    continue;
+                }
+
                 // 比較粒子數量，如果不同則需要重新渲染
                 if (group.particles.length !== groupData.particles.length) {
                     // 清除舊的 meshes
@@ -133,6 +155,17 @@ class App {
                         group.meshes.push(sphereMesh);
                     });
                 }
+                // 若粒子數量相同，仍同步位置與邊界（例如拖動後提交的資料）
+                if (group.particles.length === groupData.particles.length) {
+                    group.particles = groupData.particles;
+                    group.position = groupData.position || group.calculateCenter();
+                    group.bounds = groupData.bounds || group.calculateBounds();
+                    group.particles.forEach((p, idx) => {
+                        const mesh = group.meshes[idx];
+                        if (mesh) mesh.position.set(p.x, p.y, p.z);
+                    });
+                    group.updateVisuals(this.sceneManager.scene);
+                }
             }
         }
 
@@ -142,6 +175,21 @@ class App {
                 const group = this.groupObjectMap.get(id);
                 group.dispose(this.sceneManager.scene);
                 this.groupObjectMap.delete(id);
+            }
+        }
+
+        // --- 同步選取狀態顯示 ---
+        const prevSelectedId = this.selectedGroupId;
+        const nextSelectedId = state.selectedGroup ? state.selectedGroup.id : null;
+        if (prevSelectedId !== nextSelectedId) {
+            if (prevSelectedId && this.groupObjectMap.has(prevSelectedId)) {
+                const prevGroup = this.groupObjectMap.get(prevSelectedId);
+                prevGroup.hideSelection(this.sceneManager.scene);
+            }
+            this.selectedGroupId = nextSelectedId;
+            if (nextSelectedId && this.groupObjectMap.has(nextSelectedId)) {
+                const nextGroup = this.groupObjectMap.get(nextSelectedId);
+                nextGroup.showSelection(this.sceneManager.scene);
             }
         }
 
@@ -182,6 +230,113 @@ class App {
         const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation);
 
         if (intersectPoint) {
+            if (state.currentMode === 'select') {
+                // 選取模式：嘗試選取群組
+                const picked = this.pickGroupUnderCursor(event);
+                if (picked) {
+                    const { group } = picked;
+
+                    // 若選取不同群組，更新選取並顯示邊界
+                    if (this.selectedGroupId && this.selectedGroupId !== group.id) {
+                        const prev = this.groupObjectMap.get(this.selectedGroupId);
+                        if (prev) prev.hideSelection(this.sceneManager.scene);
+                    }
+                    this.selectedGroupId = group.id;
+                    if (this.multiSelectedGroupIds.size > 0 && this.multiSelectedGroupIds.has(group.id)) {
+                        // 維持既有多選集合
+                    } else {
+                        this.multiSelectedGroupIds = new Set([group.id]);
+                        // 單選：只顯示當前群組選取視覺
+                        group.showSelection(this.sceneManager.scene);
+                    }
+                    this.stateManager.setSelectedGroup({ id: group.id });
+
+                    // 準備拖動資料（相機方向拖動平面 + 平面交點起始）
+                    this.isDraggingSelection = true;
+                    const camDir = new THREE.Vector3();
+                    this.sceneManager.camera.getWorldDirection(camDir);
+                    this.dragPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, new THREE.Vector3(group.position.x, group.position.y, group.position.z));
+                    const mouse = this.sceneManager.mouse;
+                    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                    this.sceneManager.raycaster.setFromCamera(mouse, this.sceneManager.camera);
+                    const startOnPlane = new THREE.Vector3();
+                    this.sceneManager.raycaster.ray.intersectPlane(this.dragPlane, startOnPlane);
+                    this.dragStartOnPlane = startOnPlane.clone();
+                    this.selectedGroupStartCenter = { ...group.position };
+                    // 建立所有將移動群組的起點中心
+                    const idsToPrepare = this.multiSelectedGroupIds.size > 0 ? Array.from(this.multiSelectedGroupIds) : [group.id];
+                    this.selectedGroupsStartCenters = new Map();
+                    idsToPrepare.forEach(id => {
+                        const g = this.groupObjectMap.get(id);
+                        if (g) this.selectedGroupsStartCenters.set(id, { ...g.position });
+                    });
+                } else {
+                    // 沒有直接點到粒子，但可能點在已選取群組的邊界內 → 開始拖動
+                    // 使用射線直接測試是否命中已選群組的邊界盒（不依賴繪圖平面）
+                    const idsToCheck = this.multiSelectedGroupIds.size > 0
+                        ? Array.from(this.multiSelectedGroupIds)
+                        : (this.selectedGroupId ? [this.selectedGroupId] : []);
+                    const idsUnderRay = this.getSelectedIdsHitByRay(event, idsToCheck);
+                    const clickedInsideSelection = idsUnderRay.length > 0;
+
+                    if (clickedInsideSelection) {
+                        // 使用現有的選取作為拖動對象
+                        this.isDraggingSelection = true;
+                        const camDir2 = new THREE.Vector3();
+                        this.sceneManager.camera.getWorldDirection(camDir2);
+                        let planeCenter = null;
+                        if (this.selectedGroupId && this.groupObjectMap.has(this.selectedGroupId)) {
+                            const g0 = this.groupObjectMap.get(this.selectedGroupId);
+                            planeCenter = new THREE.Vector3(g0.position.x, g0.position.y, g0.position.z);
+                        } else if (idsToCheck.length > 0) {
+                            const g1 = this.groupObjectMap.get(idsToCheck[0]);
+                            if (g1) planeCenter = new THREE.Vector3(g1.position.x, g1.position.y, g1.position.z);
+                        }
+                        this.dragPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(camDir2, planeCenter || new THREE.Vector3());
+                        const mouse2 = this.sceneManager.mouse;
+                        mouse2.x = (event.clientX / window.innerWidth) * 2 - 1;
+                        mouse2.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                        this.sceneManager.raycaster.setFromCamera(mouse2, this.sceneManager.camera);
+                        const startOnPlane2 = new THREE.Vector3();
+                        this.sceneManager.raycaster.ray.intersectPlane(this.dragPlane, startOnPlane2);
+                        this.dragStartOnPlane = startOnPlane2.clone();
+                        // 準備各群組起始中心
+                        const idsToPrepare = idsToCheck.length > 0 ? idsToCheck : [];
+                        this.selectedGroupsStartCenters = new Map();
+                        idsToPrepare.forEach(id => {
+                            const g = this.groupObjectMap.get(id);
+                            if (g) this.selectedGroupsStartCenters.set(id, { ...g.position });
+                        });
+                        // 單選也準備起點中心
+                        if (this.selectedGroupId && !this.selectedGroupsStartCenters.has(this.selectedGroupId)) {
+                            const g = this.groupObjectMap.get(this.selectedGroupId);
+                            if (g) this.selectedGroupsStartCenters.set(this.selectedGroupId, { ...g.position });
+                        }
+                        // 不更改 selection 狀態
+                    } else {
+                        // 點擊空白處：開始框選
+                        this.beginMarqueeSelection({ x: event.clientX, y: event.clientY });
+                        // 清除既有選取視覺
+                        if (this.selectedGroupId && this.groupObjectMap.has(this.selectedGroupId)) {
+                            const prev = this.groupObjectMap.get(this.selectedGroupId);
+                            prev.hideSelection(this.sceneManager.scene);
+                        }
+                        this.multiSelectedGroupIds.forEach(id => {
+                            const g = this.groupObjectMap.get(id);
+                            if (g) g.hideSelection(this.sceneManager.scene);
+                        });
+                        this.selectedGroupId = null;
+                        this.multiSelectedGroupIds.clear();
+                        this.isDraggingSelection = false;
+                        this.dragStartPoint = null;
+                        this.selectedGroupStartCenter = null;
+                        this.selectedGroupsStartCenters.clear();
+                        this.stateManager.setSelectedGroup(null);
+                    }
+                }
+                return; // 選擇模式處理完畢
+            }
             if (state.currentMode === 'point') {
                 // 點模式：創建單點群組
                 const pointData = {
@@ -243,7 +398,7 @@ class App {
 
         const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation);
 
-        // 只為橡皮擦顯示工具預覽
+        // 工具預覽：橡皮擦與筆刷
         if (state.currentMode === 'eraser') {
             if (intersectPoint) {
                 this.updateToolPreview(intersectPoint, state.currentMode);
@@ -252,12 +407,60 @@ class App {
                 this.clearToolPreview();
                 this.clearEraserPreview();
             }
+        } else if (state.currentMode === 'brush') {
+            if (intersectPoint) {
+                this.updateToolPreview(intersectPoint, state.currentMode);
+            } else {
+                this.clearToolPreview();
+            }
         } else {
             this.clearToolPreview();
             this.clearEraserPreview();
         }
 
-        // 如果沒有在繪製或沒有交點，則返回
+        // 框選更新（螢幕座標）
+        if (this.isMarqueeSelecting) {
+            this.updateMarqueeSelection({ x: event.clientX, y: event.clientY });
+            // 框選時不進行其他操作
+            return;
+        }
+
+        // 選擇模式拖動：使用相機方向的拖動平面
+        if (state.currentMode === 'select' && this.isDraggingSelection && this.selectedGroupId) {
+            if (!this.dragPlane || !this.dragStartOnPlane) return;
+            // 計算當前滑鼠在拖動平面的交點
+            const mouse = this.sceneManager.mouse;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            this.sceneManager.raycaster.setFromCamera(mouse, this.sceneManager.camera);
+            const curr = new THREE.Vector3();
+            if (!this.sceneManager.raycaster.ray.intersectPlane(this.dragPlane, curr)) return;
+
+            const dx = curr.x - this.dragStartOnPlane.x;
+            const dy = curr.y - this.dragStartOnPlane.y;
+            const dz = curr.z - this.dragStartOnPlane.z;
+
+            const idsToMove = this.multiSelectedGroupIds.size > 0 ? Array.from(this.multiSelectedGroupIds) : [this.selectedGroupId];
+            idsToMove.forEach(id => {
+                const g = this.groupObjectMap.get(id);
+                const startCenter = this.selectedGroupsStartCenters.get(id) || this.selectedGroupStartCenter;
+                if (!g || !startCenter) return;
+                const newPos = {
+                    x: startCenter.x + dx,
+                    y: startCenter.y + dy,
+                    z: startCenter.z + dz
+                };
+                g.moveTo(newPos);
+                g.particles.forEach((p, idx) => {
+                    const mesh = g.meshes[idx];
+                    if (mesh) mesh.position.set(p.x, p.y, p.z);
+                });
+                g.updateVisuals(this.sceneManager.scene);
+            });
+            return;
+        }
+
+        // 如果沒有在繪製或沒有交點，則返回（非選擇模式）
         if (!state.isDrawing) return;
         if (!intersectPoint) return;
 
@@ -297,6 +500,62 @@ class App {
     handleMouseUp(event) {
         const state = this.stateManager.getState();
 
+        // 完成框選（若有）
+        if (this.isMarqueeSelecting) {
+            const selection = this.finishMarqueeSelection({ x: event.clientX, y: event.clientY });
+            // 清除舊選取視覺
+            if (this.selectedGroupId && this.groupObjectMap.has(this.selectedGroupId)) {
+                const prev = this.groupObjectMap.get(this.selectedGroupId);
+                prev.hideSelection(this.sceneManager.scene);
+            }
+            this.multiSelectedGroupIds.forEach(id => {
+                const g = this.groupObjectMap.get(id);
+                if (g) g.hideSelection(this.sceneManager.scene);
+            });
+            // 套用新選取
+            this.multiSelectedGroupIds = new Set(selection);
+            if (this.multiSelectedGroupIds.size > 0) {
+                // 將第一個作為主選取（供現有 UI 使用）
+                const firstId = Array.from(this.multiSelectedGroupIds)[0];
+                this.selectedGroupId = firstId;
+                this.stateManager.setSelectedGroup({ id: firstId });
+            } else {
+                this.selectedGroupId = null;
+                this.stateManager.setSelectedGroup(null);
+            }
+            // 顯示視覺
+            this.multiSelectedGroupIds.forEach(id => {
+                const g = this.groupObjectMap.get(id);
+                if (g) g.showSelection(this.sceneManager.scene);
+            });
+            // 結束框選流程
+            this.isDraggingSelection = false;
+            this.dragStartPoint = null;
+            this.selectedGroupStartCenter = null;
+            this.selectedGroupsStartCenters.clear();
+        }
+
+        // 選擇模式：若正在拖動，提交狀態更新
+        if (state.currentMode === 'select' && this.isDraggingSelection && this.selectedGroupId) {
+            const idsToUpdate = this.multiSelectedGroupIds.size > 0 ? Array.from(this.multiSelectedGroupIds) : [this.selectedGroupId];
+            idsToUpdate.forEach(id => {
+                const g = this.groupObjectMap.get(id);
+                if (g) {
+                    this.stateManager.updateGroup(g.id, {
+                        particles: g.particles,
+                        position: g.position,
+                        bounds: g.bounds
+                    });
+                }
+            });
+            this.isDraggingSelection = false;
+            this.dragStartPoint = null;
+            this.selectedGroupStartCenter = null;
+            this.selectedGroupsStartCenters.clear();
+            this.dragPlane = null;
+            this.dragStartOnPlane = null;
+        }
+
         // 筆刷模式：完成群組並保存
         if (state.currentMode === 'brush' && this.currentBrushGroup) {
             if (this.currentBrushGroup.particles.length > 0) {
@@ -324,6 +583,172 @@ class App {
 
         this.stateManager.setDrawing(false);
         this.stateManager.setLastPointPosition(null);
+    }
+
+    /**
+     * 在目前滑鼠位置嘗試選取群組
+     */
+    pickGroupUnderCursor(event) {
+        // 設定 raycaster
+        const mouse = this.sceneManager.mouse;
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        this.sceneManager.raycaster.setFromCamera(mouse, this.sceneManager.camera);
+
+        // 收集所有群組的 meshes 以及可見的邊界框與控制點
+        const meshes = [];
+        for (const group of this.groupObjectMap.values()) {
+            if (group.meshes && group.meshes.length > 0) {
+                meshes.push(...group.meshes);
+            }
+            if (group.boundingBox) {
+                meshes.push(group.boundingBox);
+            }
+            if (group.resizeHandles && group.resizeHandles.length > 0) {
+                meshes.push(...group.resizeHandles);
+            }
+        }
+        if (meshes.length === 0) return null;
+
+        // 射線相交測試
+        const intersects = this.sceneManager.raycaster.intersectObjects(meshes, false);
+        if (intersects.length === 0) return null;
+
+        const pickedObject = intersects[0].object;
+        // 找到該 mesh 所屬的群組
+        for (const group of this.groupObjectMap.values()) {
+            if ((group.meshes && group.meshes.includes(pickedObject)) ||
+                group.boundingBox === pickedObject ||
+                (group.resizeHandles && group.resizeHandles.includes(pickedObject))) {
+                return { group, object: pickedObject };
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 傳回 ray 命中已選群組邊界盒的群組 IDs
+     */
+    getSelectedIdsHitByRay(event, idsToCheck) {
+        const mouse = this.sceneManager.mouse;
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        this.sceneManager.raycaster.setFromCamera(mouse, this.sceneManager.camera);
+
+        const ray = this.sceneManager.raycaster.ray;
+        const hitIds = [];
+        const tol = 0.05;
+        idsToCheck.forEach(id => {
+            const g = this.groupObjectMap.get(id);
+            if (!g) return;
+            const min = new THREE.Vector3(g.bounds.min.x, g.bounds.min.y, g.bounds.min.z);
+            const max = new THREE.Vector3(g.bounds.max.x, g.bounds.max.y, g.bounds.max.z);
+            const box = new THREE.Box3(min, max);
+            box.expandByScalar(tol);
+            const hitPoint = new THREE.Vector3();
+            if (ray.intersectBox(box, hitPoint) !== null) {
+                hitIds.push(id);
+            }
+        });
+        return hitIds;
+    }
+
+    /** 框選：開始 */
+    beginMarqueeSelection(start) {
+        this.isMarqueeSelecting = true;
+        this.marqueeStartScreen = start;
+        this.createSelectionRect(start.x, start.y, start.x, start.y);
+    }
+
+    /** 框選：更新矩形 */
+    updateMarqueeSelection(current) {
+        if (!this.isMarqueeSelecting || !this.marqueeStartScreen) return;
+        this.updateSelectionRect(this.marqueeStartScreen.x, this.marqueeStartScreen.y, current.x, current.y);
+    }
+
+    /** 框選：完成並回傳選取群組 IDs */
+    finishMarqueeSelection(end) {
+        if (!this.isMarqueeSelecting || !this.marqueeStartScreen) {
+            this.clearSelectionRect();
+            return [];
+        }
+        const x1 = this.marqueeStartScreen.x;
+        const y1 = this.marqueeStartScreen.y;
+        const x2 = end.x;
+        const y2 = end.y;
+        const minX = Math.min(x1, x2);
+        const maxX = Math.max(x1, x2);
+        const minY = Math.min(y1, y2);
+        const maxY = Math.max(y1, y2);
+
+        const selected = [];
+        for (const [id, group] of this.groupObjectMap.entries()) {
+            const screen = this.worldToScreen(new THREE.Vector3(group.position.x, group.position.y, group.position.z));
+            if (!screen) continue;
+            if (screen.x >= minX && screen.x <= maxX && screen.y >= minY && screen.y <= maxY) {
+                selected.push(id);
+            }
+        }
+
+        this.isMarqueeSelecting = false;
+        this.marqueeStartScreen = null;
+        this.clearSelectionRect();
+        return selected;
+    }
+
+    /** 世界座標轉螢幕座標 */
+    worldToScreen(worldVec3) {
+        const camera = this.sceneManager.camera;
+        const renderer = this.sceneManager.renderer;
+        if (!camera || !renderer) return null;
+        const width = renderer.domElement.clientWidth || window.innerWidth;
+        const height = renderer.domElement.clientHeight || window.innerHeight;
+        const projected = worldVec3.clone().project(camera);
+        const x = (projected.x + 1) / 2 * width;
+        const y = (1 - projected.y) / 2 * height;
+        return { x, y };
+    }
+
+    /** 建立矩形覆蓋層 */
+    createSelectionRect(x1, y1, x2, y2) {
+        if (!this.selectionRectEl) {
+            const el = document.createElement('div');
+            el.id = 'selection-rect-overlay';
+            el.style.cssText = `
+                position: fixed;
+                z-index: 9999;
+                border: 1px dashed #00aaff;
+                background: rgba(0, 170, 255, 0.15);
+                pointer-events: none;
+                left: 0; top: 0; width: 0; height: 0;`;
+            document.body.appendChild(el);
+            this.selectionRectEl = el;
+        }
+        this.updateSelectionRect(x1, y1, x2, y2);
+    }
+
+    /** 更新矩形覆蓋層位置大小 */
+    updateSelectionRect(x1, y1, x2, y2) {
+        if (!this.selectionRectEl) return;
+        const left = Math.min(x1, x2);
+        const top = Math.min(y1, y2);
+        const width = Math.abs(x2 - x1);
+        const height = Math.abs(y2 - y1);
+        Object.assign(this.selectionRectEl.style, {
+            left: `${left}px`,
+            top: `${top}px`,
+            width: `${width}px`,
+            height: `${height}px`,
+            display: 'block'
+        });
+    }
+
+    /** 移除矩形覆蓋層 */
+    clearSelectionRect() {
+        if (this.selectionRectEl && this.selectionRectEl.parentNode) {
+            this.selectionRectEl.parentNode.removeChild(this.selectionRectEl);
+        }
+        this.selectionRectEl = null;
     }
     
     eraseAtPosition(position, radius = 0.5) {
