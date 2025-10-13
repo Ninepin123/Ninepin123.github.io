@@ -37,6 +37,9 @@ class App {
         this.multiSelectedGroupIds = new Set();
         this.selectedGroupsStartCenters = new Map();
 
+        // 記錄上一次網格大小，避免每次狀態變更都重建網格
+        this.lastGridSize = null;
+
         // 框選狀態與元素
         this.isMarqueeSelecting = false;
         this.marqueeStartScreen = null; // {x, y}
@@ -71,11 +74,16 @@ class App {
      * @param {object} state - 最新的應用狀態
      */
     onStateChange(state) {
-        // 更新場景設定，如繪圖高度、平面旋轉和相機控制
+        // 先處理可能的網格大小變更（重建平面/網格）
+        if (this.lastGridSize !== state.gridSize) {
+            this.sceneManager.updateGridSize(state.gridSize);
+            this.lastGridSize = state.gridSize;
+        }
+
+        // 更新場景設定：繪圖高度、平面旋轉、相機控制
         this.sceneManager.updateHeight(state.drawingHeight);
         this.sceneManager.updatePlaneRotation(state.planeRotation);
         this.sceneManager.updateCameraSensitivity(state.cameraSensitivity);
-        this.sceneManager.updateGridSize(state.gridSize);
         this.sceneManager.controls.enabled = (state.currentMode === 'camera' || !state.isDrawing);
 
         // 更新游標樣式
