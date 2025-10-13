@@ -1,17 +1,21 @@
 class StateManager {
     constructor() {
         this.particlePoints = [];
-        this.currentMode = 'camera'; // 'camera', 'point', 'brush', 'eraser'
+        this.drawingGroups = []; // 新增：儲存繪圖群組
+        this.currentMode = 'camera'; // 'camera', 'select', 'point', 'brush', 'eraser', 'rectangle', 'circle'
         this.drawingHeight = 0;
         this.planeRotation = { x: 0, y: 0, z: 0 };
-        this.cameraSensitivity = 1.0; // 新增相機靈敏度狀態
+        this.cameraSensitivity = 1.0;
         this.particleType = 'flame';
         this.particleColor = '#ff0000';
         this.isDrawing = false;
-        this.lastPointPosition = null; // This will now be part of the official state.
+        this.lastPointPosition = null;
         this.hasUnsavedChanges = false;
         this.currentProjectName = '未命名專案';
-        
+        this.skillId = 'MyDrawingSkill'; // 新增：技能 ID
+        this.gridSize = 10; // 新增：網格大小
+        this.selectedGroup = null; // 新增：當前選中的群組
+
 
         // 監聽器
         this.listeners = [];
@@ -30,16 +34,20 @@ class StateManager {
     getState() {
         return {
             particlePoints: this.particlePoints,
+            drawingGroups: this.drawingGroups,
             currentMode: this.currentMode,
             drawingHeight: this.drawingHeight,
             planeRotation: this.planeRotation,
-            cameraSensitivity: this.cameraSensitivity, // 在狀態物件中回傳
+            cameraSensitivity: this.cameraSensitivity,
             particleType: this.particleType,
             particleColor: this.particleColor,
             isDrawing: this.isDrawing,
-            lastPointPosition: this.lastPointPosition, // Add to state object
+            lastPointPosition: this.lastPointPosition,
             hasUnsavedChanges: this.hasUnsavedChanges,
             currentProjectName: this.currentProjectName,
+            skillId: this.skillId,
+            gridSize: this.gridSize,
+            selectedGroup: this.selectedGroup,
             usedColors: this.getUsedColors(),
         };
     }
@@ -109,6 +117,23 @@ class StateManager {
         this.notify();
     }
 
+    setSkillId(skillId) {
+        this.skillId = skillId;
+        this.setUnsavedChanges(true);
+        this.notify();
+    }
+
+    setGridSize(size) {
+        this.gridSize = size;
+        this.setUnsavedChanges(true);
+        this.notify();
+    }
+
+    setSelectedGroup(group) {
+        this.selectedGroup = group;
+        this.notify();
+    }
+
     setUnsavedChanges(status) {
         this.hasUnsavedChanges = status;
         this.notify();
@@ -140,17 +165,48 @@ class StateManager {
 
     clearPoints() {
         const hadPoints = this.particlePoints.length > 0;
+        const hadGroups = this.drawingGroups.length > 0;
         this.particlePoints = [];
-        if (hadPoints) {
+        this.drawingGroups = [];
+        this.selectedGroup = null;
+        if (hadPoints || hadGroups) {
             this.setUnsavedChanges(true);
         }
         this.notify();
     }
 
+    addGroup(groupData) {
+        this.drawingGroups.push(groupData);
+        this.setUnsavedChanges(true);
+        this.notify();
+    }
+
+    removeGroup(groupId) {
+        const index = this.drawingGroups.findIndex(g => g.id === groupId);
+        if (index !== -1) {
+            this.drawingGroups.splice(index, 1);
+            if (this.selectedGroup && this.selectedGroup.id === groupId) {
+                this.selectedGroup = null;
+            }
+            this.setUnsavedChanges(true);
+            this.notify();
+        }
+    }
+
+    updateGroup(groupId, updates) {
+        const group = this.drawingGroups.find(g => g.id === groupId);
+        if (group) {
+            Object.assign(group, updates);
+            this.setUnsavedChanges(true);
+            this.notify();
+        }
+    }
+
     loadProject(projectData) {
         this.clearPoints();
         this.currentProjectName = projectData.name || '未命名專案';
-        this.lastPointPosition = null; // Reset on new project
+        this.lastPointPosition = null;
+        this.selectedGroup = null;
 
         if (projectData.settings) {
             this.drawingHeight = projectData.settings.drawingHeight || 0;
@@ -158,14 +214,23 @@ class StateManager {
             this.cameraSensitivity = projectData.settings.cameraSensitivity || 1.0;
             this.particleType = projectData.settings.particleType || 'flame';
             this.particleColor = projectData.settings.particleColor || '#ff0000';
+            this.skillId = projectData.settings.skillId || 'MyDrawingSkill';
+            this.gridSize = projectData.settings.gridSize || 10;
         }
 
         if (projectData.particles) {
             this.particlePoints = projectData.particles.map(p => ({
                 ...p,
-                id: p.id || crypto.randomUUID(), // 確保向後兼容
+                id: p.id || crypto.randomUUID(),
                 sphereMesh: null,
                 lineSegment: null
+            }));
+        }
+
+        if (projectData.groups) {
+            this.drawingGroups = projectData.groups.map(g => ({
+                ...g,
+                id: g.id || crypto.randomUUID()
             }));
         }
 

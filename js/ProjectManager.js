@@ -8,13 +8,21 @@ class ProjectManager {
         return {
             name: state.currentProjectName,
             createdAt: new Date().toISOString(),
-            version: "1.0",
+            version: "2.0",
             particles: state.particlePoints.map(point => ({
+                id: point.id,
                 x: point.x,
                 y: point.y,
                 z: point.z,
                 particleType: point.particleType,
                 color: point.color
+            })),
+            groups: state.drawingGroups.map(group => ({
+                id: group.id,
+                type: group.type,
+                particles: group.particles || [],
+                bounds: group.bounds,
+                position: group.position
             })),
             settings: {
                 drawingHeight: state.drawingHeight,
@@ -22,8 +30,8 @@ class ProjectManager {
                 particleType: state.particleType,
                 particleColor: state.particleColor,
                 cameraSensitivity: state.cameraSensitivity,
-                redstonePalette: state.redstonePalette,
-                activePaletteIndex: state.activePaletteIndex
+                skillId: state.skillId,
+                gridSize: state.gridSize
             }
         };
     }

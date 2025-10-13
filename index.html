@@ -43,6 +43,10 @@
                 <input type="text" id="project-name" placeholder="輸入專案名稱" value="未命名專案">
             </div>
             <div class="control-group">
+                <label for="skill-id">技能 ID:</label>
+                <input type="text" id="skill-id" placeholder="輸入技能ID" value="MyDrawingSkill">
+            </div>
+            <div class="control-group">
                 <div class="button-grid">
                     <button id="btn-save-project" class="secondary-btn">儲存</button>
                     <button id="btn-load-project" class="secondary-btn">載入</button>
@@ -59,9 +63,16 @@
             </div>
         </div>
 
-        <!-- 攝影機設定 -->
+        <!-- 場景設定 -->
         <div class="section">
-            <h3 class="section-title">攝影機設定</h3>
+            <h3 class="section-title">場景設定</h3>
+            <div class="control-group">
+                <label for="grid-size">網格大小:</label>
+                <div class="slider-group">
+                    <input type="range" id="grid-size" min="5" max="50" step="5" value="10">
+                    <span id="grid-size-display" class="slider-display">10</span>
+                </div>
+            </div>
             <div class="control-group">
                 <label for="camera-sensitivity">攝影機靈敏度:</label>
                 <div class="slider-group">
@@ -78,9 +89,17 @@
                 <label>操作模式:</label>
                 <div class="mode-switcher">
                     <button id="btn-mode-camera" class="mode-btn active">相機</button>
+                    <button id="btn-mode-select" class="mode-btn">選擇</button>
                     <button id="btn-mode-point" class="mode-btn">點</button>
                     <button id="btn-mode-brush" class="mode-btn">筆刷</button>
                     <button id="btn-mode-eraser" class="mode-btn">橡皮擦</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>形狀工具:</label>
+                <div class="mode-switcher">
+                    <button id="btn-mode-rectangle" class="mode-btn">方塊</button>
+                    <button id="btn-mode-circle" class="mode-btn">圓形</button>
                 </div>
             </div>
             <div class="control-group">

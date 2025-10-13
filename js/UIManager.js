@@ -19,7 +19,9 @@ class UIManager {
         this.rotationYDisplay = document.querySelector('#rotation-y-display');
         this.rotationZDisplay = document.querySelector('#rotation-z-display');
 
-        // --- 攝影機設定 ---
+        // --- 場景設定 ---
+        this.gridSizeSlider = document.querySelector('#grid-size');
+        this.gridSizeDisplay = document.querySelector('#grid-size-display');
         this.cameraSensitivitySlider = document.querySelector('#camera-sensitivity');
         this.sensitivityDisplay = document.querySelector('#sensitivity-display');
 
@@ -43,9 +45,12 @@ class UIManager {
         // --- 模式按鈕 ---
         this.modeButtons = {
             camera: document.querySelector('#btn-mode-camera'),
+            select: document.querySelector('#btn-mode-select'),
             point: document.querySelector('#btn-mode-point'),
             brush: document.querySelector('#btn-mode-brush'),
             eraser: document.querySelector('#btn-mode-eraser'),
+            rectangle: document.querySelector('#btn-mode-rectangle'),
+            circle: document.querySelector('#btn-mode-circle'),
         };
 
         // --- 專案管理 ---
@@ -53,8 +58,9 @@ class UIManager {
         this.saveProjectBtn = document.querySelector('#btn-save-project');
         this.loadProjectBtn = document.querySelector('#btn-load-project');
         this.projectNameInput = document.querySelector('#project-name');
+        this.skillIdInput = document.querySelector('#skill-id');
         this.currentProjectDisplay = document.querySelector('#current-project-display');
-        
+
     }
 
     setupEventListeners() {
@@ -75,7 +81,8 @@ class UIManager {
         this.planeRotationYSlider.addEventListener('input', () => this.handlePlaneRotationChange());
         this.planeRotationZSlider.addEventListener('input', () => this.handlePlaneRotationChange());
 
-        // 攝影機靈敏度
+        // 場景設定
+        this.gridSizeSlider.addEventListener('input', (e) => this.stateManager.setGridSize(parseInt(e.target.value)));
         this.cameraSensitivitySlider.addEventListener('input', (e) => this.stateManager.setCameraSensitivity(parseFloat(e.target.value)));
 
         // 添加雙擊編輯功能
@@ -83,12 +90,13 @@ class UIManager {
 
         // 操作按鈕
         this.generateBtn.addEventListener('click', () => this.generateCode());
-        this.copyCodeBtn.addEventListener('click', () => this.copyCode()); // 新增事件監聽器
+        this.copyCodeBtn.addEventListener('click', () => this.copyCode());
         this.clearBtn.addEventListener('click', () => this.requestClear());
         this.undoBtn.addEventListener('click', () => this.stateManager.undoLastPoint());
 
         // 專案管理
         this.projectNameInput.addEventListener('input', (e) => this.stateManager.setProjectName(e.target.value));
+        this.skillIdInput.addEventListener('input', (e) => this.stateManager.setSkillId(e.target.value));
         
 
         // 設定浮動調色盤可拖動
@@ -313,12 +321,15 @@ class UIManager {
         this.planeRotationZSlider.value = state.planeRotation.z;
         this.rotationZDisplay.textContent = `${state.planeRotation.z}°`;
 
-        // 更新攝影機靈敏度顯示
+        // 更新場景設定
+        this.gridSizeSlider.value = state.gridSize;
+        this.gridSizeDisplay.textContent = state.gridSize;
         this.cameraSensitivitySlider.value = state.cameraSensitivity;
         this.sensitivityDisplay.textContent = state.cameraSensitivity.toFixed(1);
 
         // 更新專案顯示
         this.projectNameInput.value = state.currentProjectName;
+        this.skillIdInput.value = state.skillId;
         this.currentProjectDisplay.textContent = state.hasUnsavedChanges ? `${state.currentProjectName} *` : state.currentProjectName;
 
 
@@ -658,11 +669,15 @@ class UIManager {
 
     generateCode() {
         const state = this.stateManager.getState();
-        if (state.particlePoints.length === 0) {
+        if (state.particlePoints.length === 0 && state.drawingGroups.length === 0) {
             this.codeOutput.value = "畫布上沒有任何粒子點，請先點擊繪製！";
             return;
         }
-        const skillLines = ['MyDrawingSkill:', '  Skills:'];
+
+        const skillId = state.skillId || 'MyDrawingSkill';
+        const skillLines = [`${skillId}:`, '  Skills:'];
+
+        // 從個別粒子點生成程式碼
         state.particlePoints.forEach(point => {
             const sideOffset = (-point.x).toFixed(3);
             const yOffset = point.y.toFixed(3);
@@ -678,6 +693,28 @@ class UIManager {
             const line = `    - effect:particles{${attributesString}} @self`;
             skillLines.push(line);
         });
+
+        // 從繪圖群組生成程式碼
+        state.drawingGroups.forEach(group => {
+            if (group.particles && group.particles.length > 0) {
+                group.particles.forEach(point => {
+                    const sideOffset = (-point.x).toFixed(3);
+                    const yOffset = point.y.toFixed(3);
+                    const forwardOffset = point.z.toFixed(3);
+                    let attributes = [
+                        `particle=${point.particleType}`, `amount=1`, `speed=0`,
+                        `y=${yOffset}`, `forwardOffset=${forwardOffset}`, `sideOffset=${sideOffset}`
+                    ];
+                    if (point.particleType === 'reddust') {
+                        attributes.push(`color=${point.color}`);
+                    }
+                    const attributesString = attributes.join(';');
+                    const line = `    - effect:particles{${attributesString}} @self`;
+                    skillLines.push(line);
+                });
+            }
+        });
+
         this.codeOutput.value = skillLines.join('\n');
     }
 

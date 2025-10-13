@@ -3,6 +3,7 @@ import StateManager from './js/StateManager.js';
 import ThreeScene from './js/ThreeScene.js';
 import UIManager from './js/UIManager.js';
 import ProjectManager from './js/ProjectManager.js';
+import LocalStorageManager from './js/LocalStorageManager.js';
 
 class App {
     constructor() {
@@ -11,12 +12,14 @@ class App {
         this.sceneManager = new ThreeScene(this.canvas);
         this.uiManager = new UIManager(this.stateManager);
         this.projectManager = new ProjectManager(this.stateManager);
+        this.localStorageManager = new LocalStorageManager(this.stateManager);
 
         this.particleObjectMap = new Map();
         this.MIN_DISTANCE = 0.2;
 
         this.connectModules();
         this.setupEventListeners();
+        this.initLocalStorage();
     }
 
     connectModules() {
@@ -42,7 +45,8 @@ class App {
         // 更新場景設定，如繪圖高度、平面旋轉和相機控制
         this.sceneManager.updateHeight(state.drawingHeight);
         this.sceneManager.updatePlaneRotation(state.planeRotation);
-        this.sceneManager.updateCameraSensitivity(state.cameraSensitivity); // 更新相機靈敏度
+        this.sceneManager.updateCameraSensitivity(state.cameraSensitivity);
+        this.sceneManager.updateGridSize(state.gridSize);
         this.sceneManager.controls.enabled = (state.currentMode === 'camera' || !state.isDrawing);
 
         // --- 3D 物件與狀態同步 ---
@@ -136,6 +140,17 @@ class App {
 
         if (pointsToRemove.length > 0) {
             this.stateManager.removePoints(pointsToRemove);
+        }
+    }
+
+    initLocalStorage() {
+        // 初始化 localStorage 自動儲存
+        this.localStorageManager.init();
+
+        // 顯示儲存空間資訊（開發用）
+        const storageInfo = this.localStorageManager.getStorageInfo();
+        if (storageInfo) {
+            console.log(`[Storage] 使用量: ${storageInfo.totalSize}MB (約 ${storageInfo.usage}%)`);
         }
     }
 }

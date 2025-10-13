@@ -5,6 +5,7 @@ class ThreeScene {
     constructor(canvas) {
         this.canvas = canvas;
         this.particlePoints = [];
+        this.gridSize = 10; // 預設網格大小
         this.init();
     }
 
@@ -35,8 +36,8 @@ class ThreeScene {
 
     setupSceneElements() {
         // 網格輔助
-        const gridHelper = new THREE.GridHelper(10, 10);
-        this.scene.add(gridHelper);
+        this.gridHelper = new THREE.GridHelper(this.gridSize, this.gridSize);
+        this.scene.add(this.gridHelper);
 
         // 坐標軸輔助
         const axesGeometry = new THREE.BufferGeometry();
@@ -56,13 +57,13 @@ class ThreeScene {
         this.scene.add(directionalLight);
 
         // 繪圖目標平面
-        this.targetPlane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }));
+        this.targetPlane = new THREE.Mesh(new THREE.PlaneGeometry(this.gridSize, this.gridSize).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }));
         this.scene.add(this.targetPlane);
 
-        this.dynamicTargetPlane = new THREE.Mesh(new THREE.PlaneGeometry(10, 10).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ visible: false, transparent: true, side: THREE.DoubleSide }));
+        this.dynamicTargetPlane = new THREE.Mesh(new THREE.PlaneGeometry(this.gridSize, this.gridSize).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ visible: false, transparent: true, side: THREE.DoubleSide }));
         this.scene.add(this.dynamicTargetPlane);
 
-        this.heightGridHelper = new THREE.GridHelper(10, 10, 0xff4444, 0xff6666);
+        this.heightGridHelper = new THREE.GridHelper(this.gridSize, this.gridSize, 0xff4444, 0xff6666);
         this.heightGridHelper.material.transparent = true;
         this.heightGridHelper.material.opacity = 0.5;
         this.heightGridHelper.visible = false;
@@ -135,6 +136,39 @@ class ThreeScene {
         this.controls.rotateSpeed = sensitivity;
         this.controls.zoomSpeed = sensitivity;
         this.controls.panSpeed = sensitivity;
+    }
+
+    updateGridSize(size) {
+        this.gridSize = size;
+
+        // 移除舊的網格
+        this.scene.remove(this.gridHelper);
+        this.scene.remove(this.targetPlane);
+        this.scene.remove(this.dynamicTargetPlane);
+        this.scene.remove(this.heightGridHelper);
+
+        // 創建新的網格
+        this.gridHelper = new THREE.GridHelper(size, size);
+        this.scene.add(this.gridHelper);
+
+        // 重新創建平面
+        this.targetPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2),
+            new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+        );
+        this.scene.add(this.targetPlane);
+
+        this.dynamicTargetPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2),
+            new THREE.MeshBasicMaterial({ visible: false, transparent: true, side: THREE.DoubleSide })
+        );
+        this.scene.add(this.dynamicTargetPlane);
+
+        this.heightGridHelper = new THREE.GridHelper(size, size, 0xff4444, 0xff6666);
+        this.heightGridHelper.material.transparent = true;
+        this.heightGridHelper.material.opacity = 0.5;
+        this.heightGridHelper.visible = false;
+        this.scene.add(this.heightGridHelper);
     }
 }
 
