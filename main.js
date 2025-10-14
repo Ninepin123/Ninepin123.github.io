@@ -20,7 +20,7 @@ class App {
         this.particleObjectMap = new Map();
         this.groupObjectMap = new Map(); // 儲存群組物件
         this.currentBrushGroup = null; // 當前正在繪製的筆刷群組
-        this.currentBrushPreviewMeshes = []; // 當前筆刷的預覽 meshes
+        this.currentBrushPreviewMeshes = []; // 當前筆刷預覽的半透明粒子
         this.eraserPreviewMeshes = []; // 橡皮擦預覽的高亮 meshes
         this.shapeStartPoint = null; // 形狀繪製的起始點
         this.shapePreviewMesh = null; // 形狀預覽的 mesh
@@ -68,6 +68,20 @@ class App {
         window.addEventListener('mouseup', this.handleMouseUp.bind(this));
     }
 
+    getDrawingPlaneInfo() {
+        const plane = this.sceneManager.dynamicTargetPlane;
+        plane.updateMatrixWorld(true);
+
+        const normal = new THREE.Vector3(0, 1, 0)
+            .applyQuaternion(plane.quaternion)
+            .normalize();
+
+        const worldToPlane = point => plane.worldToLocal(point.clone());
+        const planeToWorld = point => plane.localToWorld(point.clone());
+
+        return { plane, normal, worldToPlane, planeToWorld };
+    }
+
     /**
      * 當狀態管理器中的狀態發生變化時，此函數會被調用。
      * 主要負責同步 3D 場景的視覺表現與當前的應用狀態。
@@ -91,7 +105,6 @@ class App {
 
         // 如果清空了所有內容，清理所有臨時預覽
         if (state.drawingGroups.length === 0 && state.particlePoints.length === 0) {
-            // 清理筆刷預覽
             this.currentBrushPreviewMeshes.forEach(mesh => {
                 this.sceneManager.removeObject(mesh);
             });
@@ -378,14 +391,13 @@ class App {
                     color: state.particleColor
                 });
 
-                // 創建第一個預覽點（半透明）
                 const pointVec = new THREE.Vector3(pointData.x, pointData.y, pointData.z);
-                const sphereMesh = this.sceneManager.addPoint({
+                const previewMesh = this.sceneManager.addPoint({
                     point: pointVec,
                     color: state.particleColor,
                     opacity: 0.5
                 });
-                this.currentBrushPreviewMeshes.push(sphereMesh);
+                this.currentBrushPreviewMeshes.push(previewMesh);
 
                 this.stateManager.setLastPointPosition(intersectPoint);
 
@@ -414,12 +426,6 @@ class App {
             } else {
                 this.clearToolPreview();
                 this.clearEraserPreview();
-            }
-        } else if (state.currentMode === 'brush') {
-            if (intersectPoint) {
-                this.updateToolPreview(intersectPoint, state.currentMode);
-            } else {
-                this.clearToolPreview();
             }
         } else {
             this.clearToolPreview();
@@ -484,14 +490,13 @@ class App {
                 // 添加點到當前筆刷群組
                 this.currentBrushGroup.addParticle(pointData);
 
-                // 立即創建預覽粒子（半透明）
                 const pointVec = new THREE.Vector3(pointData.x, pointData.y, pointData.z);
-                const sphereMesh = this.sceneManager.addPoint({
+                const previewMesh = this.sceneManager.addPoint({
                     point: pointVec,
                     color: state.particleColor,
                     opacity: 0.5
                 });
-                this.currentBrushPreviewMeshes.push(sphereMesh);
+                this.currentBrushPreviewMeshes.push(previewMesh);
 
                 this.stateManager.setLastPointPosition(intersectPoint);
             }
@@ -567,7 +572,6 @@ class App {
         // 筆刷模式：完成群組並保存
         if (state.currentMode === 'brush' && this.currentBrushGroup) {
             if (this.currentBrushGroup.particles.length > 0) {
-                // 移除預覽 meshes
                 this.currentBrushPreviewMeshes.forEach(mesh => {
                     this.sceneManager.removeObject(mesh);
                 });
@@ -577,6 +581,11 @@ class App {
                 this.stateManager.addGroup(this.currentBrushGroup.toJSON());
             }
             this.currentBrushGroup = null;
+        } else {
+            this.currentBrushPreviewMeshes.forEach(mesh => {
+                this.sceneManager.removeObject(mesh);
+            });
+            this.currentBrushPreviewMeshes = [];
         }
 
         // 形狀模式：完成形狀繪製
@@ -856,25 +865,38 @@ class App {
         // 移除舊的預覽
         this.clearShapePreview();
 
-        const start = this.shapeStartPoint;
-        const width = Math.abs(endPoint.x - start.x);
-        const depth = Math.abs(endPoint.z - start.z);
-        const centerX = (start.x + endPoint.x) / 2;
-        const centerZ = (start.z + endPoint.z) / 2;
-        const y = start.y + 0.05; // 稍微抬高避免被平面遮擋
+        if (!this.shapeStartPoint) return;
 
-        // 如果形狀太小，不顯示預覽
-        if (width < 0.1 || depth < 0.1) return;
+        const { plane, normal, worldToPlane, planeToWorld } = this.getDrawingPlaneInfo();
+        const startLocal = worldToPlane(this.shapeStartPoint);
+        const endLocal = worldToPlane(endPoint);
 
-        let geometry;
+        const sizeX = Math.abs(endLocal.x - startLocal.x);
+        const sizeZ = Math.abs(endLocal.z - startLocal.z);
+
+        let geometry = null;
+
         if (shapeType === 'rectangle') {
-            geometry = new THREE.PlaneGeometry(width, depth);
-            geometry.rotateX(-Math.PI / 2);
+            if (sizeX < 0.1 || sizeZ < 0.1) return;
+            geometry = new THREE.PlaneGeometry(sizeX, sizeZ);
         } else if (shapeType === 'circle') {
-            const radius = Math.sqrt(width * width + depth * depth) / 2;
+            const radius = Math.sqrt(
+                Math.pow(endLocal.x - startLocal.x, 2) +
+                Math.pow(endLocal.z - startLocal.z, 2)
+            ) / 2;
+            if (sizeX < 0.1 || sizeZ < 0.1) return;
             geometry = new THREE.CircleGeometry(radius, 32);
-            geometry.rotateX(-Math.PI / 2);
+        } else {
+            return;
         }
+
+        const centerLocal = new THREE.Vector3(
+            (startLocal.x + endLocal.x) / 2,
+            0,
+            (startLocal.z + endLocal.z) / 2
+        );
+        const previewOffset = normal.clone().multiplyScalar(0.02);
+        const previewPosition = planeToWorld(centerLocal).add(previewOffset);
 
         // 使用更明顯的材質
         const material = new THREE.MeshBasicMaterial({
@@ -882,13 +904,14 @@ class App {
             transparent: true,
             opacity: 0.5,
             side: THREE.DoubleSide,
-            depthTest: false, // 確保總是可見
+            depthTest: false,
             depthWrite: false
         });
 
         this.shapePreviewMesh = new THREE.Mesh(geometry, material);
-        this.shapePreviewMesh.position.set(centerX, y, centerZ);
-        this.shapePreviewMesh.renderOrder = 999; // 確保在最上層渲染
+        this.shapePreviewMesh.position.copy(previewPosition);
+        this.shapePreviewMesh.setRotationFromQuaternion(plane.quaternion);
+        this.shapePreviewMesh.renderOrder = 999;
         this.sceneManager.scene.add(this.shapePreviewMesh);
 
         // 同時添加邊框線以更明顯
@@ -899,7 +922,8 @@ class App {
             depthTest: false
         });
         const line = new THREE.LineSegments(edges, lineMaterial);
-        line.position.copy(this.shapePreviewMesh.position);
+        line.position.copy(previewPosition);
+        line.setRotationFromQuaternion(plane.quaternion);
         line.renderOrder = 1000;
         this.sceneManager.scene.add(line);
 
@@ -931,115 +955,94 @@ class App {
      * 創建形狀群組
      */
     createShapeGroup(endPoint, shapeType, state) {
-        const start = this.shapeStartPoint;
+        if (!this.shapeStartPoint) return;
+
         const particles = [];
         const spacing = 0.2; // 粒子間距
+        const { plane, worldToPlane, planeToWorld } = this.getDrawingPlaneInfo();
+
+        const startLocal = worldToPlane(this.shapeStartPoint);
+        const endLocal = worldToPlane(endPoint);
+
+        const addLocalParticle = (x, z) => {
+            const worldPoint = planeToWorld(new THREE.Vector3(x, 0, z));
+            particles.push({
+                id: crypto.randomUUID(),
+                x: worldPoint.x,
+                y: worldPoint.y,
+                z: worldPoint.z,
+                particleType: state.particleType,
+                color: state.particleColor
+            });
+        };
 
         if (shapeType === 'rectangle') {
-            // 生成矩形的粒子
-            const minX = Math.min(start.x, endPoint.x);
-            const maxX = Math.max(start.x, endPoint.x);
-            const minZ = Math.min(start.z, endPoint.z);
-            const maxZ = Math.max(start.z, endPoint.z);
+            const minX = Math.min(startLocal.x, endLocal.x);
+            const maxX = Math.max(startLocal.x, endLocal.x);
+            const minZ = Math.min(startLocal.z, endLocal.z);
+            const maxZ = Math.max(startLocal.z, endLocal.z);
+
+            const width = maxX - minX;
+            const depth = maxZ - minZ;
+            const stepCountX = width > 0 ? Math.ceil(width / spacing) : 0;
+            const stepCountZ = depth > 0 ? Math.ceil(depth / spacing) : 0;
 
             if (state.shapeFillMode === 'filled') {
-                // 實心：填滿整個矩形
-                for (let x = minX; x <= maxX; x += spacing) {
-                    for (let z = minZ; z <= maxZ; z += spacing) {
-                        particles.push({
-                            id: crypto.randomUUID(),
-                            x: x,
-                            y: start.y,
-                            z: z,
-                            particleType: state.particleType,
-                            color: state.particleColor
-                        });
+                for (let ix = 0; ix <= stepCountX; ix++) {
+                    const x = minX + (width * ix) / (stepCountX === 0 ? 1 : stepCountX);
+                    for (let iz = 0; iz <= stepCountZ; iz++) {
+                        const z = minZ + (depth * iz) / (stepCountZ === 0 ? 1 : stepCountZ);
+                        addLocalParticle(x, z);
                     }
                 }
             } else {
-                // 空心：只畫四條邊
-                // 上邊和下邊
-                for (let x = minX; x <= maxX; x += spacing) {
-                    particles.push({
-                        id: crypto.randomUUID(),
-                        x: x,
-                        y: start.y,
-                        z: minZ,
-                        particleType: state.particleType,
-                        color: state.particleColor
-                    });
-                    particles.push({
-                        id: crypto.randomUUID(),
-                        x: x,
-                        y: start.y,
-                        z: maxZ,
-                        particleType: state.particleType,
-                        color: state.particleColor
-                    });
+                for (let ix = 0; ix <= stepCountX; ix++) {
+                    const x = minX + (width * ix) / (stepCountX === 0 ? 1 : stepCountX);
+                    addLocalParticle(x, minZ);
+                    if (stepCountZ > 0) {
+                        addLocalParticle(x, maxZ);
+                    }
                 }
-                // 左邊和右邊（排除角落以避免重複）
-                for (let z = minZ + spacing; z < maxZ; z += spacing) {
-                    particles.push({
-                        id: crypto.randomUUID(),
-                        x: minX,
-                        y: start.y,
-                        z: z,
-                        particleType: state.particleType,
-                        color: state.particleColor
-                    });
-                    particles.push({
-                        id: crypto.randomUUID(),
-                        x: maxX,
-                        y: start.y,
-                        z: z,
-                        particleType: state.particleType,
-                        color: state.particleColor
-                    });
+                if (stepCountZ > 0) {
+                    for (let iz = 1; iz < stepCountZ; iz++) {
+                        const z = minZ + (depth * iz) / stepCountZ;
+                        addLocalParticle(minX, z);
+                        if (stepCountX > 0) {
+                            addLocalParticle(maxX, z);
+                        }
+                    }
                 }
             }
         } else if (shapeType === 'circle') {
-            // 生成圓形的粒子
-            const centerX = (start.x + endPoint.x) / 2;
-            const centerZ = (start.z + endPoint.z) / 2;
-            const radius = Math.sqrt(
-                Math.pow(endPoint.x - start.x, 2) +
-                Math.pow(endPoint.z - start.z, 2)
-            ) / 2;
+            const centerLocalX = (startLocal.x + endLocal.x) / 2;
+            const centerLocalZ = (startLocal.z + endLocal.z) / 2;
+            const dx = endLocal.x - startLocal.x;
+            const dz = endLocal.z - startLocal.z;
+            const radius = Math.sqrt(dx * dx + dz * dz) / 2;
 
-            if (state.shapeFillMode === 'filled') {
-                // 實心：填滿整個圓形
-                const steps = Math.ceil(2 * Math.PI * radius / spacing);
-                for (let i = 0; i <= steps; i++) {
-                    const angle = (i / steps) * 2 * Math.PI;
-                    for (let r = 0; r <= radius; r += spacing) {
-                        const x = centerX + Math.cos(angle) * r;
-                        const z = centerZ + Math.sin(angle) * r;
-                        particles.push({
-                            id: crypto.randomUUID(),
-                            x: x,
-                            y: start.y,
-                            z: z,
-                            particleType: state.particleType,
-                            color: state.particleColor
-                        });
+            if (radius < spacing * 0.5) {
+                addLocalParticle(centerLocalX, centerLocalZ);
+            } else if (state.shapeFillMode === 'filled') {
+                const angleSteps = Math.max(12, Math.ceil((2 * Math.PI * radius) / spacing));
+                const radialSteps = Math.max(1, Math.ceil(radius / spacing));
+                for (let i = 0; i <= angleSteps; i++) {
+                    const angle = (i / angleSteps) * 2 * Math.PI;
+                    const cos = Math.cos(angle);
+                    const sin = Math.sin(angle);
+                    for (let rStep = 0; rStep <= radialSteps; rStep++) {
+                        const r = (radius * rStep) / radialSteps;
+                        const x = centerLocalX + cos * r;
+                        const z = centerLocalZ + sin * r;
+                        addLocalParticle(x, z);
                     }
                 }
             } else {
-                // 空心：只畫圓周
-                const circumference = 2 * Math.PI * radius;
-                const steps = Math.ceil(circumference / spacing);
-                for (let i = 0; i < steps; i++) {
-                    const angle = (i / steps) * 2 * Math.PI;
-                    const x = centerX + Math.cos(angle) * radius;
-                    const z = centerZ + Math.sin(angle) * radius;
-                    particles.push({
-                        id: crypto.randomUUID(),
-                        x: x,
-                        y: start.y,
-                        z: z,
-                        particleType: state.particleType,
-                        color: state.particleColor
-                    });
+                const angleSteps = Math.max(24, Math.ceil((2 * Math.PI * radius) / spacing));
+                for (let i = 0; i < angleSteps; i++) {
+                    const angle = (i / angleSteps) * 2 * Math.PI;
+                    const x = centerLocalX + Math.cos(angle) * radius;
+                    const z = centerLocalZ + Math.sin(angle) * radius;
+                    addLocalParticle(x, z);
                 }
             }
         }
@@ -1047,7 +1050,7 @@ class App {
         if (particles.length > 0) {
             const group = new DrawingGroup({
                 type: shapeType,
-                particles: particles,
+                particles,
                 particleType: state.particleType,
                 color: state.particleColor
             });
@@ -1063,12 +1066,12 @@ class App {
         // 清除舊的預覽
         this.clearToolPreview();
 
+        const { plane, normal } = this.getDrawingPlaneInfo();
         const radius = mode === 'brush' ? this.BRUSH_RADIUS : this.ERASER_RADIUS;
         const color = mode === 'brush' ? 0x00ff00 : 0xff0000;
 
         // 創建圓圈幾何
         const geometry = new THREE.CircleGeometry(radius, 32);
-        geometry.rotateX(-Math.PI / 2);
 
         // 創建材質
         const material = new THREE.MeshBasicMaterial({
@@ -1080,8 +1083,10 @@ class App {
             depthWrite: false
         });
 
+        const previewPosition = position.clone().add(normal.clone().multiplyScalar(0.02));
         this.toolPreviewMesh = new THREE.Mesh(geometry, material);
-        this.toolPreviewMesh.position.set(position.x, position.y + 0.02, position.z);
+        this.toolPreviewMesh.position.copy(previewPosition);
+        this.toolPreviewMesh.setRotationFromQuaternion(plane.quaternion);
         this.toolPreviewMesh.renderOrder = 998;
         this.sceneManager.scene.add(this.toolPreviewMesh);
 
@@ -1093,7 +1098,8 @@ class App {
             depthTest: false
         });
         const line = new THREE.LineSegments(edgesGeometry, lineMaterial);
-        line.position.copy(this.toolPreviewMesh.position);
+        line.position.copy(previewPosition);
+        line.setRotationFromQuaternion(plane.quaternion);
         line.renderOrder = 999;
         this.sceneManager.scene.add(line);
 

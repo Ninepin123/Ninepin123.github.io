@@ -27,6 +27,7 @@ class ThreeScene {
 
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
+        this.epsilon = 0.001; // 避免與板面 Z-fighting 的微小偏移
 
         this.setupSceneElements();
         this.animate();
@@ -56,11 +57,18 @@ class ThreeScene {
         directionalLight.position.set(10, 15, 20);
         this.scene.add(directionalLight);
 
-        // 繪圖目標平面
-        this.targetPlane = new THREE.Mesh(new THREE.PlaneGeometry(this.gridSize, this.gridSize).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }));
+        // 繪圖目標平面（唯一板子）
+        this.targetPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(this.gridSize, this.gridSize).rotateX(-Math.PI / 2),
+            new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+        );
         this.scene.add(this.targetPlane);
 
-        this.dynamicTargetPlane = new THREE.Mesh(new THREE.PlaneGeometry(this.gridSize, this.gridSize).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ visible: false, transparent: true, side: THREE.DoubleSide }));
+        // 動態平面：作為可上下移動與旋轉的唯一繪製板
+        this.dynamicTargetPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(this.gridSize, this.gridSize).rotateX(-Math.PI / 2),
+            new THREE.MeshBasicMaterial({ visible: false, transparent: true, side: THREE.DoubleSide })
+        );
         this.scene.add(this.dynamicTargetPlane);
 
         this.heightGridHelper = new THREE.GridHelper(this.gridSize, this.gridSize, 0xff4444, 0xff6666);
@@ -80,6 +88,9 @@ class ThreeScene {
         });
         const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
         sphereMesh.position.copy(point);
+        // 確保不與板面 Z-fighting：沿板子法向加入極小偏移
+        const planeNormal = new THREE.Vector3(0, 1, 0).applyQuaternion(this.dynamicTargetPlane.quaternion).normalize();
+        sphereMesh.position.add(planeNormal.multiplyScalar(this.epsilon));
         this.scene.add(sphereMesh);
         return sphereMesh;
     }
@@ -109,12 +120,10 @@ class ThreeScene {
         this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
-
+        // 將動態板設置到當前高度/旋轉，並以此為唯一繪製目標
         this.dynamicTargetPlane.position.y = drawingHeight;
         this.updatePlaneRotation(planeRotation);
-
-        const target = Math.abs(drawingHeight) < 0.001 ? this.targetPlane : this.dynamicTargetPlane;
-        const intersects = this.raycaster.intersectObject(target, false);
+        const intersects = this.raycaster.intersectObject(this.dynamicTargetPlane, false);
         return intersects.length > 0 ? intersects[0].point : null;
     }
 
@@ -170,7 +179,7 @@ class ThreeScene {
         this.gridHelper = new THREE.GridHelper(size, size);
         this.scene.add(this.gridHelper);
 
-        // 重新創建平面
+        // 重新創建平面（唯一板子）
         this.targetPlane = new THREE.Mesh(
             new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2),
             new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })

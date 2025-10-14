@@ -393,11 +393,8 @@ class UIManager {
         console.log(`[浮動調色盤] 調色盤可見性:`, !this.floatingPalette.classList.contains('hidden'));
 
         if (isReddustMode) {
-            // 從粒子點中提取所有獨一無二的顏色
-            const allColors = state.particlePoints.map(p => p.color).filter(c => c);
-            const uniqueColors = [...new Set(allColors)];
-            
-            console.log(`[浮動調色盤] 所有粒子顏色:`, allColors);
+            // 使用狀態管理器提供的已使用顏色（同時涵蓋群組與舊粒子點）
+            const uniqueColors = Array.isArray(state.usedColors) ? state.usedColors : [];
             console.log(`[浮動調色盤] 獨一無二的顏色:`, uniqueColors);
 
             // 清除舊的顏色樣本

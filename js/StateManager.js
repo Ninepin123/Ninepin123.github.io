@@ -59,9 +59,21 @@ class StateManager {
     // --- 取得已使用的顏色列表 ---
     getUsedColors() {
         const colors = new Set();
+        // 舊系統：獨立粒子點
         this.particlePoints.forEach(point => {
             if (point.particleType === 'reddust' && point.color) {
                 colors.add(point.color);
+            }
+        });
+        // 新系統：繪圖群組（從群組與其粒子收集顏色）
+        this.drawingGroups.forEach(group => {
+            if (group.color) colors.add(group.color);
+            if (Array.isArray(group.particles)) {
+                group.particles.forEach(p => {
+                    if (p && p.particleType === 'reddust' && p.color) {
+                        colors.add(p.color);
+                    }
+                });
             }
         });
         return Array.from(colors).sort();
@@ -119,6 +131,9 @@ class StateManager {
         console.log(`[StateManager] 修改後: particleType=${this.particleType}, particleColor=${this.particleColor}`);
         console.log(`[StateManager] 即將調用 notify()`);
         
+        // 變更粒子設定屬於專案變更，標記需儲存
+        this.setUnsavedChanges(true);
+
         this.notify();
         
         console.log(`[StateManager] notify() 已完成`);
