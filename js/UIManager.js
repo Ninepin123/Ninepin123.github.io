@@ -19,6 +19,11 @@ class UIManager {
         this.rotationYDisplay = document.querySelector('#rotation-y-display');
         this.rotationZDisplay = document.querySelector('#rotation-z-display');
 
+        this.planeOffsetXSlider = document.querySelector('#plane-offset-x');
+        this.planeOffsetZSlider = document.querySelector('#plane-offset-z');
+        this.offsetXDisplay = document.querySelector('#offset-x-display');
+        this.offsetZDisplay = document.querySelector('#offset-z-display');
+
         // --- 場景設定 ---
         this.gridSizeSlider = document.querySelector('#grid-size');
         this.gridSizeDisplay = document.querySelector('#grid-size-display');
@@ -35,7 +40,7 @@ class UIManager {
         this.floatingPalette = document.querySelector('#floating-palette');
         this.paletteHeader = document.querySelector('#palette-header'); // 新增標頭參照
         this.paletteSwatches = document.querySelector('#palette-swatches');
-        
+
         console.log(`[浮動調色盤] 初始化完成:`, {
             floatingPalette: this.floatingPalette,
             paletteHeader: this.paletteHeader,
@@ -105,6 +110,10 @@ class UIManager {
         this.planeRotationYSlider.addEventListener('input', () => this.handlePlaneRotationChange());
         this.planeRotationZSlider.addEventListener('input', () => this.handlePlaneRotationChange());
 
+        // 平面偏移
+        this.planeOffsetXSlider.addEventListener('input', () => this.handlePlaneOffsetChange());
+        this.planeOffsetZSlider.addEventListener('input', () => this.handlePlaneOffsetChange());
+
         // 場景設定
         this.gridSizeSlider.addEventListener('input', (e) => this.stateManager.setGridSize(parseInt(e.target.value)));
         this.cameraSensitivitySlider.addEventListener('input', (e) => this.stateManager.setCameraSensitivity(parseFloat(e.target.value)));
@@ -121,7 +130,7 @@ class UIManager {
         // 專案管理
         this.projectNameInput.addEventListener('input', (e) => this.stateManager.setProjectName(e.target.value));
         this.skillIdInput.addEventListener('input', (e) => this.stateManager.setSkillId(e.target.value));
-        
+
 
         // 設定浮動調色盤可拖動
         this.setupPaletteDragging();
@@ -133,41 +142,41 @@ class UIManager {
             console.log(`[浮動調色盤] 點擊目標:`, event.target);
             console.log(`[浮動調色盤] 點擊目標類名:`, event.target.className);
             console.log(`[浮動調色盤] 點擊目標標籤:`, event.target.tagName);
-            
+
             // 阻止事件冒泡，確保只處理一次
             event.stopPropagation();
             event.preventDefault();
-            
+
             const swatch = event.target.closest('.color-swatch');
             console.log(`[浮動調色盤] 找到的色塊元素:`, swatch);
-            
+
             if (swatch) {
                 const clickedColor = swatch.dataset.color;
                 const backgroundColor = swatch.style.backgroundColor;
-                
+
                 console.log(`[浮動調色盤] 色塊資料 - dataset.color:`, clickedColor);
                 console.log(`[浮動調色盤] 色塊資料 - backgroundColor:`, backgroundColor);
                 console.log(`[浮動調色盤] 色塊類名:`, swatch.className);
-                
+
                 if (clickedColor) {
                     const currentState = this.stateManager.getState();
                     console.log(`[浮動調色盤] 當前狀態 - particleType:`, currentState.particleType);
                     console.log(`[浮動調色盤] 當前狀態 - particleColor:`, currentState.particleColor);
-                    
+
                     // 確保是紅石粒子才切換顏色
                     if (currentState.particleType === 'reddust') {
                         console.log(`[浮動調色盤] ✅ 開始切換顏色到:`, clickedColor);
-                        
+
                         // 執行顏色切換
                         this.stateManager.setParticleSettings('reddust', clickedColor);
                         console.log(`[浮動調色盤] ✅ 顏色切換完成`);
-                        
+
                         // 顯示視覺反饋
                         this.showFloatingPaletteFeedback(clickedColor);
                         console.log(`[浮動調色盤] ✅ 視覺反饋已觸發`);
                     } else {
                         console.warn(`[浮動調色盤] ❌ 無法切換顏色 - 當前不是紅石粒子模式:`, currentState.particleType);
-                        
+
                         // 顯示錯誤提示
                         this.showFloatingPaletteError('請先選擇紅石粒子類型');
                     }
@@ -183,7 +192,7 @@ class UIManager {
                 console.log(`[浮動調色盤] ℹ️ 點擊的不是色塊元素`);
                 console.log(`[浮動調色盤] 所有子元素:`, Array.from(this.paletteSwatches.children));
             }
-            
+
             console.log(`[浮動調色盤] ========== 顏色切換事件結束 ==========`);
         };
 
@@ -196,22 +205,22 @@ class UIManager {
                 handleColorSwitch(event);
             }
         });
-        
+
         // 額外的事件監聽器用於除錯
         this.paletteSwatches.addEventListener('mousedown', (event) => {
             console.log(`[浮動調色盤] mousedown 事件:`, event.target);
         });
-        
+
         this.paletteSwatches.addEventListener('mouseup', (event) => {
             console.log(`[浮動調色盤] mouseup 事件:`, event.target);
         });
-        
+
         // 監聽整個浮動調色盤的點擊事件
         this.floatingPalette.addEventListener('click', (event) => {
             console.log(`[浮動調色盤] 調色盤區域點擊:`, event.target);
             console.log(`[浮動調色盤] 點擊位置:`, { x: event.clientX, y: event.clientY });
         });
-        
+
     }
 
     setupPaletteDragging() {
@@ -221,13 +230,13 @@ class UIManager {
 
         const onMouseDown = (e) => {
             console.log(`[拖拽] mousedown 在標頭上`);
-            
+
             // 檢查是否點擊在色塊上，如果是則不啟動拖拽
             if (e.target.closest('.color-swatch')) {
                 console.log(`[拖拽] 點擊在色塊上，不啟動拖拽`);
                 return;
             }
-            
+
             isDragging = true;
             dragStarted = false;
             // 計算滑鼠點擊位置相對於調色盤左上角的偏移
@@ -242,7 +251,7 @@ class UIManager {
 
         const onMouseMove = (e) => {
             if (!isDragging) return;
-            
+
             // 標記已開始拖拽
             if (!dragStarted) {
                 dragStarted = true;
@@ -274,16 +283,16 @@ class UIManager {
 
         const onMouseUp = () => {
             console.log(`[拖拽] mouseup，isDragging: ${isDragging}, dragStarted: ${dragStarted}`);
-            
+
             isDragging = false;
             dragStarted = false;
-            
+
             // 恢復 transition 效果
             this.floatingPalette.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
 
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
-            
+
             console.log(`[拖拽] 拖拽結束`);
         };
 
@@ -295,6 +304,14 @@ class UIManager {
         const type = this.particleTypeSelect.value;
         const color = this.particleColorInput.value;
         this.stateManager.setParticleSettings(type, color);
+    }
+
+    handlePlaneOffsetChange() {
+        const offset = {
+            x: parseFloat(this.planeOffsetXSlider.value),
+            z: parseFloat(this.planeOffsetZSlider.value),
+        };
+        this.stateManager.setPlaneOffset(offset);
     }
 
     handlePlaneRotationChange() {
@@ -341,12 +358,12 @@ class UIManager {
 
         // 更新粒子設定
         console.log(`[UIManager] updateUI - 更新粒子設定: type=${state.particleType}, color=${state.particleColor}`);
-        
+
         this.particleTypeSelect.value = state.particleType;
         this.particleColorInput.value = state.particleColor;
-        
+
         console.log(`[UIManager] updateUI - 顏色選擇器已更新為: ${this.particleColorInput.value}`);
-        
+
         const isColorSupported = state.particleType === 'reddust';
         this.particleColorInput.disabled = !isColorSupported;
         this.particleColorInput.closest('.control-group').style.opacity = isColorSupported ? 1.0 : 0.5;
@@ -362,6 +379,12 @@ class UIManager {
         this.rotationYDisplay.textContent = `${state.planeRotation.y}°`;
         this.planeRotationZSlider.value = state.planeRotation.z;
         this.rotationZDisplay.textContent = `${state.planeRotation.z}°`;
+
+        // 更新平面偏移
+        this.planeOffsetXSlider.value = state.planeOffset.x;
+        this.offsetXDisplay.textContent = state.planeOffset.x;
+        this.planeOffsetZSlider.value = state.planeOffset.z;
+        this.offsetZDisplay.textContent = state.planeOffset.z;
 
         // 更新場景設定
         this.gridSizeSlider.value = state.gridSize;
@@ -385,10 +408,10 @@ class UIManager {
         console.log(`[浮動調色盤] updateFloatingPalette 被調用`);
         console.log(`[浮動調色盤] 當前粒子類型:`, state.particleType);
         console.log(`[浮動調色盤] 粒子點數量:`, state.particlePoints.length);
-        
+
         const isReddustMode = state.particleType === 'reddust';
         console.log(`[浮動調色盤] 是否為紅石模式:`, isReddustMode);
-        
+
         this.floatingPalette.classList.toggle('hidden', !isReddustMode);
         console.log(`[浮動調色盤] 調色盤可見性:`, !this.floatingPalette.classList.contains('hidden'));
 
@@ -411,29 +434,29 @@ class UIManager {
             // 為每個獨一無二的顏色建立一個樣本
             uniqueColors.forEach((color, index) => {
                 console.log(`[浮動調色盤] 創建色塊 ${index + 1}/${uniqueColors.length}: ${color}`);
-                
+
                 const swatch = document.createElement('div');
                 swatch.className = 'color-swatch';
                 swatch.style.backgroundColor = color;
                 swatch.dataset.color = color; // 將顏色儲存在 data 屬性中
                 swatch.title = `點擊切換到顏色: ${color}`;
-                
+
                 // 標記當前選中的顏色
                 if (color === state.particleColor) {
                     swatch.classList.add('active');
                     console.log(`[浮動調色盤] 色塊 ${color} 被標記為 active`);
                 }
-                
+
                 // 確保色塊可以接收點擊事件
                 swatch.style.pointerEvents = 'auto';
                 swatch.style.cursor = 'pointer';
-                
+
                 // 直接為每個色塊添加點擊事件監聽器
                 swatch.addEventListener('click', (e) => {
                     console.log(`[浮動調色盤] 直接點擊事件 - 色塊: ${color}`);
                     e.stopPropagation();
                     e.preventDefault();
-                    
+
                     const currentState = this.stateManager.getState();
                     if (currentState.particleType === 'reddust') {
                         console.log(`[浮動調色盤] 直接切換到顏色: ${color}`);
@@ -444,13 +467,13 @@ class UIManager {
                         this.showFloatingPaletteError('請先選擇紅石粒子類型');
                     }
                 });
-                
+
                 // 也添加 mouseup 事件作為備用
                 swatch.addEventListener('mouseup', (e) => {
                     console.log(`[浮動調色盤] 直接 mouseup 事件 - 色塊: ${color}`);
                     e.stopPropagation();
                     e.preventDefault();
-                    
+
                     const currentState = this.stateManager.getState();
                     if (currentState.particleType === 'reddust') {
                         console.log(`[浮動調色盤] 通過 mouseup 切換到顏色: ${color}`);
@@ -461,10 +484,10 @@ class UIManager {
                         this.showFloatingPaletteError('請先選擇紅石粒子類型');
                     }
                 });
-                
+
                 this.paletteSwatches.appendChild(swatch);
                 console.log(`[浮動調色盤] 色塊 ${color} 已添加到 DOM 並綁定事件`);
-                
+
                 // 驗證元素是否正確創建
                 setTimeout(() => {
                     const rect = swatch.getBoundingClientRect();
@@ -477,7 +500,7 @@ class UIManager {
                     });
                 }, 50);
             });
-            
+
             console.log(`[浮動調色盤] 所有色塊創建完成，總數:`, this.paletteSwatches.children.length);
         } else {
             console.log(`[浮動調色盤] 非紅石模式，隱藏調色盤`);
@@ -487,11 +510,11 @@ class UIManager {
     // --- 浮動調色盤視覺反饋 ---
     showFloatingPaletteFeedback(color) {
         console.log(`[浮動調色盤] 顯示切換反饋:`, color);
-        
+
         // 更新顏色選擇器的值
         this.particleColorInput.value = color;
         console.log(`[浮動調色盤] 顏色選擇器已更新為:`, color);
-        
+
         // 創建臨時提示元素
         const feedback = document.createElement('div');
         feedback.style.cssText = `
@@ -517,7 +540,7 @@ class UIManager {
                 <span>已切換到顏色 ${color}</span>
             </div>
         `;
-        
+
         // 添加CSS動畫
         const style = document.createElement('style');
         style.textContent = `
@@ -544,12 +567,12 @@ class UIManager {
                 }
             }
         `;
-        
+
         document.head.appendChild(style);
         document.body.appendChild(feedback);
-        
+
         console.log(`[浮動調色盤] 反饋動畫已顯示`);
-        
+
         // 2秒後移除提示
         setTimeout(() => {
             if (document.body.contains(feedback)) {
@@ -565,7 +588,7 @@ class UIManager {
     // --- 浮動調色盤錯誤提示 ---
     showFloatingPaletteError(message) {
         console.log(`[浮動調色盤] 顯示錯誤提示:`, message);
-        
+
         // 創建錯誤提示元素
         const errorFeedback = document.createElement('div');
         errorFeedback.style.cssText = `
@@ -591,7 +614,7 @@ class UIManager {
                 <span>${message}</span>
             </div>
         `;
-        
+
         // 添加CSS動畫
         const style = document.createElement('style');
         style.textContent = `
@@ -622,12 +645,12 @@ class UIManager {
                 }
             }
         `;
-        
+
         document.head.appendChild(style);
         document.body.appendChild(errorFeedback);
-        
+
         console.log(`[浮動調色盤] 錯誤提示已顯示`);
-        
+
         // 2秒後移除提示
         setTimeout(() => {
             if (document.body.contains(errorFeedback)) {
@@ -667,12 +690,12 @@ class UIManager {
             this.fallbackCopyTextToClipboard(this.codeOutput.value);
         }
     }
-    
+
     // 降級複製方法
     fallbackCopyTextToClipboard(text) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
-        
+
         // 避免在iOS中出現縮放效果
         textArea.style.top = "0";
         textArea.style.left = "0";
@@ -693,13 +716,13 @@ class UIManager {
 
         document.body.removeChild(textArea);
     }
-    
+
     // 顯示複製反饋
     showCopyFeedback(message, success) {
         const originalText = this.copyCodeBtn.textContent;
         this.copyCodeBtn.textContent = message;
         this.copyCodeBtn.style.backgroundColor = success ? '#28a745' : '#dc3545';
-        
+
         setTimeout(() => {
             this.copyCodeBtn.textContent = originalText;
             this.copyCodeBtn.style.backgroundColor = '';
@@ -755,6 +778,20 @@ class UIManager {
         });
 
         this.codeOutput.value = skillLines.join('\n');
+
+        // 自動下載 .yml 檔案
+        this.downloadCode(`${skillId}.yml`, this.codeOutput.value);
+    }
+
+    // --- 下載檔案工具方法 ---
+    downloadCode(filename, content) {
+        const element = document.createElement('a');
+        const file = new Blob([content], { type: 'text/yaml' });
+        element.href = URL.createObjectURL(file);
+        element.download = filename;
+        document.body.appendChild(element); // Firefox 需要將元素加入 body 才能觸發點擊
+        element.click();
+        document.body.removeChild(element);
     }
 
 
@@ -778,10 +815,26 @@ class UIManager {
 
     // 設置雙擊編輯功能
     setupDoubleClickEditing() {
+        // 網格大小
+        this.setupDisplayDoubleClick(
+            this.gridSizeDisplay,
+            'grid-size',
+            (value) => {
+                const numValue = parseInt(value, 10);
+                if (!isNaN(numValue) && numValue >= 5 && numValue <= 50) {
+                    this.gridSizeSlider.value = numValue;
+                    this.stateManager.setGridSize(numValue);
+                    return true;
+                }
+                return false;
+            },
+            (value) => value.toString()
+        );
+
         // 繪畫高度
         this.setupDisplayDoubleClick(
-            this.heightDisplay, 
-            'height', 
+            this.heightDisplay,
+            'height',
             (value) => {
                 const numValue = parseFloat(value);
                 if (!isNaN(numValue) && numValue >= 0 && numValue <= 10) {
@@ -796,11 +849,11 @@ class UIManager {
 
         // 攝影機靈敏度
         this.setupDisplayDoubleClick(
-            this.sensitivityDisplay, 
-            'sensitivity', 
+            this.sensitivityDisplay,
+            'sensitivity',
             (value) => {
                 const numValue = parseFloat(value);
-                if (!isNaN(numValue) && numValue >= 0.1 && numValue <= 3) {
+                if (!isNaN(numValue) && numValue > 0 && numValue <= 5) { // 假設最大值為 5
                     this.cameraSensitivitySlider.value = numValue;
                     this.stateManager.setCameraSensitivity(numValue);
                     return true;
@@ -810,10 +863,43 @@ class UIManager {
             (value) => value.toFixed(1)
         );
 
+        // 平面偏移 X
+        this.setupDisplayDoubleClick(
+            this.offsetXDisplay,
+            'offset X',
+            (value) => {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= -50 && numValue <= 50) {
+                    this.planeOffsetXSlider.value = numValue;
+                    this.handlePlaneOffsetChange(); // 重用 handler
+                    return true;
+                }
+                return false;
+            },
+            (value) => value // 不需格式化小數點，或者 .toFixed(1)
+        );
+
+        // 平面偏移 Z
+        this.setupDisplayDoubleClick(
+            this.offsetZDisplay,
+            'offset Z',
+            (value) => {
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= -50 && numValue <= 50) {
+                    this.planeOffsetZSlider.value = numValue;
+                    this.handlePlaneOffsetChange(); // 重用 handler
+                    return true;
+                }
+                return false;
+            },
+            (value) => value
+        );
+
+
         // 平面旋轉 X軸
         this.setupDisplayDoubleClick(
-            this.rotationXDisplay, 
-            'rotation-x', 
+            this.rotationXDisplay,
+            'rotation-x',
             (value) => {
                 const numValue = parseFloat(value);
                 if (!isNaN(numValue) && numValue >= -180 && numValue <= 180) {
@@ -828,8 +914,8 @@ class UIManager {
 
         // 平面旋轉 Y軸
         this.setupDisplayDoubleClick(
-            this.rotationYDisplay, 
-            'rotation-y', 
+            this.rotationYDisplay,
+            'rotation-y',
             (value) => {
                 const numValue = parseFloat(value);
                 if (!isNaN(numValue) && numValue >= -180 && numValue <= 180) {
@@ -844,8 +930,8 @@ class UIManager {
 
         // 平面旋轉 Z軸
         this.setupDisplayDoubleClick(
-            this.rotationZDisplay, 
-            'rotation-z', 
+            this.rotationZDisplay,
+            'rotation-z',
             (value) => {
                 const numValue = parseFloat(value);
                 if (!isNaN(numValue) && numValue >= -180 && numValue <= 180) {
@@ -862,25 +948,38 @@ class UIManager {
     // 通用的雙擊編輯設置方法
     setupDisplayDoubleClick(displayElement, identifier, validateAndUpdate, formatValue) {
         let isEditing = false;
-        
+
         displayElement.style.cursor = 'pointer';
         displayElement.title = '點擊編輯數值';
-        
+
         displayElement.addEventListener('click', () => {
             if (isEditing) return;
-            
+
             isEditing = true;
             const originalValue = displayElement.textContent;
             const numericValue = originalValue.replace(/[^\d.-]/g, ''); // 移除非數字字符
-            
+
+            // 獲取顯示元素的位置和尺寸
+            const rect = displayElement.getBoundingClientRect();
+
             // 創建輸入框
             const input = document.createElement('input');
             input.type = 'number';
             input.value = numericValue;
             input.className = `editing-input editing-${identifier}`;
+
+            // 計算置中位置 (稍微放大一點點，但中心點對齊)
+            const inputWidth = rect.width + 20;
+            const inputHeight = rect.height;
+            const inputLeft = rect.left + window.scrollX - (inputWidth - rect.width) / 2;
+            const inputTop = rect.top + window.scrollY;
+
             input.style.cssText = `
-                width: ${displayElement.offsetWidth + 20}px;
-                height: ${displayElement.offsetHeight}px;
+                position: absolute;
+                left: ${inputLeft}px;
+                top: ${inputTop}px;
+                width: ${inputWidth}px;
+                height: ${inputHeight}px;
                 font-size: ${window.getComputedStyle(displayElement).fontSize};
                 font-family: ${window.getComputedStyle(displayElement).fontFamily};
                 text-align: center;
@@ -890,19 +989,39 @@ class UIManager {
                 color: #333;
                 outline: none;
                 box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+                z-index: 9999;
             `;
-            
-            // 替換顯示元素
-            displayElement.style.display = 'none';
-            displayElement.parentNode.appendChild(input);
-            
+
+            // 隱藏顯示元素但保留空間
+            displayElement.style.visibility = 'hidden';
+
+            // 將輸入框附加到 body 以避免被父元素 overflow 裁剪或影響 layout
+            document.body.appendChild(input);
+
+            // 監聽滾動事件以更新位置
+            const updatePosition = () => {
+                if (!isEditing || !document.body.contains(input)) return;
+                const newRect = displayElement.getBoundingClientRect();
+                const newInputLeft = newRect.left + window.scrollX - (inputWidth - newRect.width) / 2;
+                const newInputTop = newRect.top + window.scrollY;
+                input.style.left = `${newInputLeft}px`;
+                input.style.top = `${newInputTop}px`;
+            };
+
+            window.addEventListener('scroll', updatePosition, true);
+            // 同時監聽 UI 面板的滾動
+            const uiPanel = document.getElementById('ui-panel');
+            if (uiPanel) {
+                uiPanel.addEventListener('scroll', updatePosition);
+            }
+
             // 選中文字並聚焦
             input.focus();
             input.select();
-            
+
             const finishEditing = (save = false) => {
                 if (!isEditing) return;
-                
+
                 let success = false;
                 if (save) {
                     const newValue = input.value.trim();
@@ -913,7 +1032,7 @@ class UIManager {
                         input.style.borderColor = '#dc3545';
                         input.style.boxShadow = '0 0 8px rgba(220, 53, 69, 0.3)';
                         setTimeout(() => {
-                            if (input.parentNode) {
+                            if (document.body.contains(input)) {
                                 input.style.borderColor = '#007bff';
                                 input.style.boxShadow = '0 0 8px rgba(0, 123, 255, 0.3)';
                             }
@@ -921,14 +1040,20 @@ class UIManager {
                         return; // 不結束編輯
                     }
                 }
-                
+
                 // 清理編輯狀態
                 isEditing = false;
-                displayElement.style.display = '';
-                if (input.parentNode) {
-                    input.parentNode.removeChild(input);
+                window.removeEventListener('scroll', updatePosition, true);
+                if (uiPanel) {
+                    uiPanel.removeEventListener('scroll', updatePosition);
                 }
-                
+
+                displayElement.style.visibility = 'visible';
+                displayElement.style.display = ''; // 確保 display 屬性被重置
+                if (document.body.contains(input)) {
+                    document.body.removeChild(input);
+                }
+
                 if (success) {
                     // 顯示成功動畫
                     displayElement.style.animation = 'valueUpdated 0.6s ease-out';
@@ -937,7 +1062,7 @@ class UIManager {
                     }, 600);
                 }
             };
-            
+
             // 事件監聽
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -946,7 +1071,7 @@ class UIManager {
                     finishEditing(false);
                 }
             });
-            
+
             input.addEventListener('blur', () => {
                 finishEditing(true);
             });

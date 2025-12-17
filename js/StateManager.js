@@ -7,6 +7,7 @@ class StateManager {
         this.shapeFillMode = 'filled'; // 新增：圖形填充模式 'filled' 或 'outline'
         this.drawingHeight = 0;
         this.planeRotation = { x: 0, y: 0, z: 0 };
+        this.planeOffset = { x: 0, z: 0 }; // 新增：平面偏移
         this.cameraSensitivity = 1.0;
         this.particleType = 'flame';
         this.particleColor = '#ff0000';
@@ -42,6 +43,7 @@ class StateManager {
             shapeFillMode: this.shapeFillMode,
             drawingHeight: this.drawingHeight,
             planeRotation: this.planeRotation,
+            planeOffset: this.planeOffset,
             cameraSensitivity: this.cameraSensitivity,
             particleType: this.particleType,
             particleColor: this.particleColor,
@@ -112,6 +114,11 @@ class StateManager {
 
     setPlaneRotation(rotation) {
         this.planeRotation = rotation;
+        this.notify();
+    }
+
+    setPlaneOffset(offset) {
+        this.planeOffset = offset;
         this.notify();
     }
 
@@ -252,6 +259,7 @@ class StateManager {
         if (projectData.settings) {
             this.drawingHeight = projectData.settings.drawingHeight || 0;
             this.planeRotation = projectData.settings.planeRotation || { x: 0, y: 0, z: 0 };
+            this.planeOffset = projectData.settings.planeOffset || { x: 0, z: 0 };
             this.cameraSensitivity = projectData.settings.cameraSensitivity || 1.0;
             this.particleType = projectData.settings.particleType || 'flame';
             this.particleColor = projectData.settings.particleColor || '#ff0000';

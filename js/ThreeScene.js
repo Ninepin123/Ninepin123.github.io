@@ -116,12 +116,12 @@ class ThreeScene {
         }
     }
 
-    getIntersectPoint(event, drawingHeight, planeRotation) {
+    getIntersectPoint(event, drawingHeight, planeRotation, planeOffset = { x: 0, z: 0 }) {
         this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        // 將動態板設置到當前高度/旋轉，並以此為唯一繪製目標
-        this.dynamicTargetPlane.position.y = drawingHeight;
+        // 將動態板設置到當前高度/旋轉/位移，並以此為唯一繪製目標
+        this.dynamicTargetPlane.position.set(planeOffset.x, drawingHeight, planeOffset.z);
         this.updatePlaneRotation(planeRotation);
         const intersects = this.raycaster.intersectObject(this.dynamicTargetPlane, false);
         return intersects.length > 0 ? intersects[0].point : null;
@@ -140,10 +140,17 @@ class ThreeScene {
         this.heightGridHelper.rotation.copy(this.dynamicTargetPlane.rotation);
     }
 
+    updatePlaneOffset(offset) {
+        this.dynamicTargetPlane.position.x = offset.x;
+        this.dynamicTargetPlane.position.z = offset.z;
+        this.heightGridHelper.position.x = offset.x;
+        this.heightGridHelper.position.z = offset.z;
+    }
+
     updateHeight(height) {
         this.dynamicTargetPlane.position.y = height;
         this.heightGridHelper.position.y = height;
-        this.heightGridHelper.visible = height > 0.05;
+        this.heightGridHelper.visible = true;
     }
 
     onWindowResize() {

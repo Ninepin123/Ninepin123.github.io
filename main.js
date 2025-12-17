@@ -97,6 +97,7 @@ class App {
         // 更新場景設定：繪圖高度、平面旋轉、相機控制
         this.sceneManager.updateHeight(state.drawingHeight);
         this.sceneManager.updatePlaneRotation(state.planeRotation);
+        this.sceneManager.updatePlaneOffset(state.planeOffset);
         this.sceneManager.updateCameraSensitivity(state.cameraSensitivity);
         this.sceneManager.controls.enabled = (state.currentMode === 'camera' || !state.isDrawing);
 
@@ -247,8 +248,18 @@ class App {
             return;
         }
 
+        const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation, state.planeOffset);
+
+        // 中鍵點擊或無交點時，啟用相機控制（繪畫模式中也能調整視角）
+        if (event.button === 1 || (intersectPoint === null && state.currentMode !== 'select')) {
+            // 確保相機中心維持在原點，避免視角晃動
+            this.sceneManager.controls.target.set(0, 0, 0);
+            this.sceneManager.controls.update();
+            this.sceneManager.controls.enabled = true;
+            return;
+        }
+
         this.stateManager.setDrawing(true);
-        const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation);
 
         if (intersectPoint) {
             if (state.currentMode === 'select') {
@@ -416,7 +427,7 @@ class App {
     handleMouseMove(event) {
         const state = this.stateManager.getState();
 
-        const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation);
+        const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation, state.planeOffset);
 
         // 工具預覽：橡皮擦與筆刷
         if (state.currentMode === 'eraser') {
@@ -590,7 +601,7 @@ class App {
 
         // 形狀模式：完成形狀繪製
         if ((state.currentMode === 'rectangle' || state.currentMode === 'circle') && this.shapeStartPoint) {
-            const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation);
+            const intersectPoint = this.sceneManager.getIntersectPoint(event, state.drawingHeight, state.planeRotation, state.planeOffset);
             if (intersectPoint) {
                 this.createShapeGroup(intersectPoint, state.currentMode, state);
             }
@@ -767,7 +778,7 @@ class App {
         }
         this.selectionRectEl = null;
     }
-    
+
     eraseAtPosition(position, radius = 0.5) {
         const state = this.stateManager.getState();
 
@@ -878,14 +889,16 @@ class App {
 
         if (shapeType === 'rectangle') {
             if (sizeX < 0.1 || sizeZ < 0.1) return;
-            geometry = new THREE.PlaneGeometry(sizeX, sizeZ);
+            // 預先旋轉 geometry 使其位於 XZ 平面，配合 plane.quaternion 後能正確對齊繪畫平面
+            geometry = new THREE.PlaneGeometry(sizeX, sizeZ).rotateX(-Math.PI / 2);
         } else if (shapeType === 'circle') {
             const radius = Math.sqrt(
                 Math.pow(endLocal.x - startLocal.x, 2) +
                 Math.pow(endLocal.z - startLocal.z, 2)
             ) / 2;
             if (sizeX < 0.1 || sizeZ < 0.1) return;
-            geometry = new THREE.CircleGeometry(radius, 32);
+            // 預先旋轉 geometry 使其位於 XZ 平面，配合 plane.quaternion 後能正確對齊繪畫平面
+            geometry = new THREE.CircleGeometry(radius, 32).rotateX(-Math.PI / 2);
         } else {
             return;
         }
