@@ -8,6 +8,8 @@ class UIManager {
         this.initDOMElements();
         this.setupSubModules();
         this.setupEventListeners();
+        this.setupCollapsibleSections();
+        this.setupPanelToggle();
         this.stateManager.subscribe(this.updateUI.bind(this));
     }
 
@@ -80,6 +82,11 @@ class UIManager {
         this.projectNameInput = document.querySelector('#project-name');
         this.skillIdInput = document.querySelector('#skill-id');
         this.currentProjectDisplay = document.querySelector('#current-project-display');
+
+        // --- 面板切換 ---
+        this.uiPanel = document.querySelector('#ui-panel');
+        this.panelCloseBtn = document.querySelector('#panel-close-btn');
+        this.panelOpenBtn = document.querySelector('#panel-open-btn');
     }
 
     setupEventListeners() {
@@ -127,6 +134,81 @@ class UIManager {
         // 專案管理
         this.projectNameInput.addEventListener('input', (e) => this.stateManager.setProjectName(e.target.value));
         this.skillIdInput.addEventListener('input', (e) => this.stateManager.setSkillId(e.target.value));
+    }
+
+    // --- 可折疊區塊 ---
+    setupCollapsibleSections() {
+        const sections = document.querySelectorAll('.section');
+        const savedState = this._loadCollapseState();
+
+        sections.forEach(section => {
+            const key = section.dataset.section;
+            // Restore saved state (true = collapsed)
+            if (savedState[key] === true) {
+                section.classList.add('collapsed');
+                const arrow = section.querySelector('.collapse-arrow');
+                if (arrow) arrow.textContent = '▸';
+            } else if (savedState[key] === false) {
+                section.classList.remove('collapsed');
+                const arrow = section.querySelector('.collapse-arrow');
+                if (arrow) arrow.textContent = '▾';
+            }
+
+            const title = section.querySelector('.section-title');
+            if (title) {
+                title.addEventListener('click', () => {
+                    section.classList.toggle('collapsed');
+                    const arrow = section.querySelector('.collapse-arrow');
+                    if (arrow) {
+                        arrow.textContent = section.classList.contains('collapsed') ? '▸' : '▾';
+                    }
+                    this._saveCollapseState();
+                });
+            }
+        });
+    }
+
+    _loadCollapseState() {
+        try {
+            const data = localStorage.getItem('ui-collapse-state');
+            return data ? JSON.parse(data) : {};
+        } catch {
+            return {};
+        }
+    }
+
+    _saveCollapseState() {
+        try {
+            const state = {};
+            document.querySelectorAll('.section').forEach(section => {
+                const key = section.dataset.section;
+                if (key) {
+                    state[key] = section.classList.contains('collapsed');
+                }
+            });
+            localStorage.setItem('ui-collapse-state', JSON.stringify(state));
+        } catch { /* ignore */ }
+    }
+
+    // --- 面板切換 ---
+    setupPanelToggle() {
+        const savedHidden = localStorage.getItem('ui-panel-hidden') === 'true';
+        if (savedHidden) {
+            this.uiPanel.classList.add('hidden');
+            this.panelOpenBtn.classList.add('visible');
+        }
+
+        this.panelCloseBtn.addEventListener('click', () => {
+            this.uiPanel.classList.add('hidden');
+            this.panelOpenBtn.classList.add('visible');
+            localStorage.setItem('ui-panel-hidden', 'true');
+        });
+
+        this.panelOpenBtn.addEventListener('click', () => {
+            this.uiPanel.classList.remove('hidden');
+            this.panelOpenBtn.classList.remove('visible');
+            localStorage.setItem('ui-panel-hidden', 'false');
+        });
     }
 
     // --- 事件處理函式 ---

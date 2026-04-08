@@ -45,9 +45,9 @@ html, body {
     position: fixed;
     top: 15px;
     left: 15px;
-    width: 320px;
+    width: 290px;
     max-height: calc(100vh - 30px);
-    padding: 20px;
+    padding: 16px;
     background-color: var(--panel-bg-color);
     border-radius: 16px;
     border: 1px solid var(--border-color);
@@ -56,52 +56,157 @@ html, body {
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--secondary-hover-color) transparent;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 500;
 }
 
-#ui-panel::-webkit-scrollbar { width: 8px; }
+#ui-panel.hidden {
+    transform: translateX(calc(-100% - 20px));
+    opacity: 0;
+    pointer-events: none;
+}
+
+#ui-panel::-webkit-scrollbar { width: 6px; }
 #ui-panel::-webkit-scrollbar-track { background: transparent; }
-#ui-panel::-webkit-scrollbar-thumb { background: var(--secondary-color); border-radius: 4px; }
+#ui-panel::-webkit-scrollbar-thumb { background: var(--secondary-color); border-radius: 3px; }
 #ui-panel::-webkit-scrollbar-thumb:hover { background: var(--secondary-hover-color); }
 
-#ui-panel h2 {
-    text-align: center;
-    margin-bottom: 25px;
-    padding-bottom: 12px;
+/* --- Panel Header --- */
+#panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--border-color);
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
 }
 
-.section {
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: var(--section-bg-color);
+#panel-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.panel-close-btn {
+    width: 28px !important;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 !important;
+    border-radius: 6px !important;
+    background-color: var(--secondary-color) !important;
+    color: var(--text-muted-color) !important;
+    font-size: 14px !important;
+    line-height: 28px;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.panel-close-btn:hover {
+    background-color: var(--danger-color) !important;
+    color: white !important;
+}
+
+/* --- Panel Open Button --- */
+#panel-open-btn {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    width: 42px;
+    height: 42px;
     border-radius: 10px;
+    background-color: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--text-color);
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 499;
+    transition: all 0.2s ease;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+#panel-open-btn.visible {
+    display: flex;
+}
+
+#panel-open-btn:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* --- Sections (Collapsible) --- */
+.section {
+    margin-bottom: 10px;
+    background-color: var(--section-bg-color);
+    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
 }
 
 .section-title {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 15px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted-color);
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
+    transition: color 0.2s, background-color 0.2s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin: 0;
 }
 
+.section-title:hover {
+    color: var(--text-color);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.collapse-arrow {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.section-content {
+    padding: 10px 12px;
+    max-height: 600px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+    opacity: 1;
+}
+
+.section.collapsed .section-content {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+}
+
+.section.collapsed .collapse-arrow {
+    transform: rotate(-90deg);
+}
+
+/* --- Control Groups --- */
 .control-group {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 .control-group:last-child { margin-bottom: 0; }
 
 .control-group label {
     display: block;
-    margin-bottom: 8px;
-    font-size: 14px;
+    margin-bottom: 5px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-muted-color);
 }
@@ -109,12 +214,12 @@ html, body {
 /* --- 輸入框 & 按鈕 --- */
 select, input[type="text"], input[type="color"], textarea {
     width: 100%;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 8px;
+    border-radius: 6px;
     border: 1px solid var(--secondary-color);
     background-color: var(--secondary-color);
     color: var(--text-color);
-    font-size: 14px;
+    font-size: 13px;
     font-family: var(--font-family);
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -125,27 +230,26 @@ select:focus, input[type="text"]:focus, textarea:focus {
     box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
-textarea { resize: vertical; min-height: 80px; }
+textarea { resize: vertical; min-height: 60px; }
 
 /* --- 按鈕 --- */
 button {
     width: 100%;
-    padding: 10px 15px;
-    border-radius: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
     border: none;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     font-family: var(--font-family);
     cursor: pointer;
     transition: all 0.2s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .button-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 6px;
 }
 .button-grid.full-width { grid-template-columns: 1fr; }
 
@@ -153,7 +257,7 @@ button {
     background-color: var(--primary-color);
     color: white;
 }
-.primary-btn:hover { background-color: var(--primary-hover-color); transform: translateY(-2px); }
+.primary-btn:hover { background-color: var(--primary-hover-color); transform: translateY(-1px); }
 
 .secondary-btn {
     background-color: var(--secondary-color);
@@ -165,15 +269,23 @@ button {
 .mode-switcher {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 5px;
+    gap: 4px;
+}
+
+.mode-main-row {
+    grid-template-columns: repeat(3, 1fr);
 }
 
 .mode-btn {
     background-color: var(--secondary-color);
     color: var(--text-muted-color);
     font-weight: 500;
-    padding: 12px 8px;
-    text-transform: none;
+    padding: 8px 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .mode-btn:hover { background-color: var(--secondary-hover-color); color: var(--text-color); }
 
@@ -181,20 +293,19 @@ button {
     background-color: var(--primary-color);
     color: white;
     font-weight: 600;
-    box-shadow: 0 4px 12px var(--shadow-color);
-    transform: translateY(-2px);
+    box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .mode-btn.active#btn-mode-eraser {
     background-color: var(--danger-color);
-    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);
+    box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
 }
 
 /* --- 滑桿 --- */
 .slider-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 input[type="range"] {
@@ -203,12 +314,12 @@ input[type="range"] {
     appearance: none;
     background: transparent;
     cursor: pointer;
-    height: 20px;
+    height: 18px;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
     background: var(--secondary-color);
-    height: 6px;
+    height: 5px;
     border-radius: 3px;
 }
 
@@ -217,8 +328,8 @@ input[type="range"]::-webkit-slider-thumb {
     appearance: none;
     margin-top: -6px;
     background: var(--primary-color);
-    height: 18px;
-    width: 18px;
+    height: 16px;
+    width: 16px;
     border-radius: 50%;
     border: 2px solid var(--bg-color);
     transition: background-color 0.2s;
@@ -227,11 +338,11 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
 
 .slider-display {
     background-color: var(--secondary-color);
-    padding: 4px 10px;
-    border-radius: 5px;
-    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
     color: var(--text-color);
-    min-width: 45px;
+    min-width: 40px;
     text-align: center;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -245,7 +356,7 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
     position: absolute;
     top: -2px;
     right: -2px;
-    font-size: 8px;
+    font-size: 7px;
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: none;
@@ -303,41 +414,41 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
 /* --- 專案顯示 --- */
 #current-project-display {
     background-color: rgba(0,0,0,0.2);
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: 6px;
     font-style: italic;
     color: var(--text-muted-color);
     text-align: center;
+    font-size: 12px;
 }
 
-/* --- 方向指示器 --- */
+/* --- 方向指示器（水平排列） --- */
 #direction-indicators {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 15px;
+    right: 15px;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    gap: 6px;
     z-index: 100;
 }
 
 .direction-indicator {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 15px;
+    gap: 4px;
+    padding: 4px 8px;
     background-color: var(--panel-bg-color);
     color: var(--text-color);
-    border-radius: 10px;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
     backdrop-filter: blur(5px);
-    font-size: 14px;
-    min-width: 130px;
+    font-size: 11px;
     transition: all 0.2s ease;
 }
 
 .direction-arrow {
-    font-size: 20px;
+    font-size: 14px;
     font-weight: bold;
     text-shadow: 0 0 5px;
 }
@@ -346,14 +457,12 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
 #indicator-forward .direction-arrow { color: #0099ff; }
 #indicator-left .direction-arrow, #indicator-right .direction-arrow { color: #ff8c00; }
 
-
-
 /* --- 浮動調色盤 --- */
 #floating-palette {
     position: fixed;
     bottom: 20px;
     left: 15px;
-    padding: 12px;
+    padding: 10px;
     background-color: var(--panel-bg-color);
     border-radius: 10px;
     border: 1px solid var(--border-color);
@@ -372,30 +481,30 @@ input[type="range"]:hover::-webkit-slider-thumb { background-color: var(--primar
 }
 
 .palette-title {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-muted-color);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     text-align: center;
 }
 
 #palette-header {
     cursor: move;
-    padding-bottom: 5px; /* 增加一些底部空間 */
+    padding-bottom: 4px;
 }
 
 .swatch-container {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+    gap: 6px;
 }
 
 .color-swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
     cursor: pointer;
     border: 2px solid transparent;
     transition: all 0.2s ease;

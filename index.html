@@ -11,201 +11,223 @@
 </head>
 <body>
     <canvas id="scene-canvas"></canvas>
-    
+
     <!-- 方向指示器 -->
     <div id="direction-indicators">
         <div class="direction-indicator" id="indicator-up">
-            <div class="direction-arrow">⬆</div>
-            <div class="direction-label">上方 (Y+)</div>
+            <span class="direction-arrow">⬆</span>
+            <span class="direction-label">Y+</span>
         </div>
         <div class="direction-indicator" id="indicator-forward">
-            <div class="direction-arrow">↗</div>
-            <div class="direction-label">前方 (Z+)</div>
+            <span class="direction-arrow">↗</span>
+            <span class="direction-label">Z+</span>
         </div>
         <div class="direction-indicator" id="indicator-left">
-            <div class="direction-arrow">←</div>
-            <div class="direction-label">左方 (X-)</div>
+            <span class="direction-arrow">←</span>
+            <span class="direction-label">X-</span>
         </div>
         <div class="direction-indicator" id="indicator-right">
-            <div class="direction-arrow">→</div>
-            <div class="direction-label">右方 (X+)</div>
+            <span class="direction-arrow">→</span>
+            <span class="direction-label">X+</span>
         </div>
     </div>
 
+    <!-- 面板展開按鈕（面板隱藏時顯示） -->
+    <button id="panel-open-btn" class="panel-toggle-btn" title="顯示控制面板">☰</button>
+
     <div id="ui-panel">
-        <h2>控制面板</h2>
-
-        <!-- 專案管理 -->
-        <div class="section">
-            <h3 class="section-title">專案管理</h3>
-            <div class="control-group">
-                <label for="project-name">專案名稱:</label>
-                <input type="text" id="project-name" placeholder="輸入專案名稱" value="未命名專案">
-            </div>
-            <div class="control-group">
-                <label for="skill-id">技能 ID:</label>
-                <input type="text" id="skill-id" placeholder="輸入技能ID" value="MyDrawingSkill">
-            </div>
-            <div class="control-group">
-                <div class="button-grid">
-                    <button id="btn-save-project" class="secondary-btn">儲存</button>
-                    <button id="btn-load-project" class="secondary-btn">載入</button>
-                </div>
-            </div>
-            <div class="control-group">
-                <div class="button-grid full-width">
-                     <button id="btn-new-project" class="primary-btn">建立新專案</button>
-                </div>
-            </div>
-            <div class="control-group">
-                <label>目前專案狀態:</label>
-                <div id="current-project-display">未命名專案</div>
-            </div>
+        <div id="panel-header">
+            <h2>控制面板</h2>
+            <button id="panel-close-btn" class="panel-close-btn" title="隱藏面板">✕</button>
         </div>
 
-        <!-- 場景設定 -->
-        <div class="section">
-            <h3 class="section-title">場景設定</h3>
-            <div class="control-group">
-                <label for="grid-size">網格大小:</label>
-                <div class="slider-group">
-                    <input type="range" id="grid-size" min="5" max="50" step="5" value="10">
-                    <span id="grid-size-display" class="slider-display">10</span>
+        <!-- 繪圖工具（預設展開） -->
+        <div class="section" data-section="drawing-tools">
+            <h3 class="section-title">繪圖工具 <span class="collapse-arrow">▾</span></h3>
+            <div class="section-content">
+                <div class="control-group">
+                    <label>操作模式:</label>
+                    <div class="mode-switcher mode-main-row">
+                        <button id="btn-mode-camera" class="mode-btn active" title="相機模式">相機</button>
+                        <button id="btn-mode-select" class="mode-btn" title="選擇模式">選擇</button>
+                        <button id="btn-mode-point" class="mode-btn" title="點模式">點</button>
+                    </div>
+                    <div class="mode-switcher mode-main-row" style="margin-top: 4px;">
+                        <button id="btn-mode-brush" class="mode-btn" title="筆刷模式">筆刷</button>
+                        <button id="btn-mode-eraser" class="mode-btn" title="橡皮擦模式">橡皮擦</button>
+                    </div>
                 </div>
-            </div>
-            <div class="control-group">
-                <label for="camera-sensitivity">攝影機靈敏度:</label>
-                <div class="slider-group">
-                    <input type="range" id="camera-sensitivity" min="0.1" max="3" step="0.1" value="1">
-                    <span id="sensitivity-display" class="slider-display">1.0</span>
+                <div class="control-group" id="eraser-mode-group" style="display: none;">
+                    <label>橡皮擦模式:</label>
+                    <div class="mode-switcher">
+                        <button id="btn-eraser-mode-point" class="mode-btn active">擦除點</button>
+                        <button id="btn-eraser-mode-group" class="mode-btn">擦除群組</button>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- 繪圖工具 -->
-        <div class="section">
-            <h3 class="section-title">繪圖工具</h3>
-            <div class="control-group">
-                <label>操作模式:</label>
-                <div class="mode-switcher">
-                    <button id="btn-mode-camera" class="mode-btn active">相機</button>
-                    <button id="btn-mode-select" class="mode-btn">選擇</button>
-                    <button id="btn-mode-point" class="mode-btn">點</button>
-                    <button id="btn-mode-brush" class="mode-btn">筆刷</button>
-                    <button id="btn-mode-eraser" class="mode-btn">橡皮擦</button>
+                <div class="control-group">
+                    <label>形狀工具:</label>
+                    <div class="mode-switcher">
+                        <button id="btn-mode-rectangle" class="mode-btn">方塊</button>
+                        <button id="btn-mode-circle" class="mode-btn">圓形</button>
+                    </div>
                 </div>
-            </div>
-            <div class="control-group" id="eraser-mode-group" style="display: none;">
-                <label>橡皮擦模式:</label>
-                <div class="mode-switcher">
-                    <button id="btn-eraser-mode-point" class="mode-btn active">擦除點</button>
-                    <button id="btn-eraser-mode-group" class="mode-btn">擦除群組</button>
+                <div class="control-group" id="shape-fill-mode-group" style="display: none;">
+                    <label>填充模式:</label>
+                    <div class="mode-switcher">
+                        <button id="btn-shape-fill-filled" class="mode-btn active">實心</button>
+                        <button id="btn-shape-fill-outline" class="mode-btn">空心</button>
+                    </div>
                 </div>
-            </div>
-            <div class="control-group">
-                <label>形狀工具:</label>
-                <div class="mode-switcher">
-                    <button id="btn-mode-rectangle" class="mode-btn">方塊</button>
-                    <button id="btn-mode-circle" class="mode-btn">圓形</button>
-                </div>
-            </div>
-            <div class="control-group" id="shape-fill-mode-group" style="display: none;">
-                <label>填充模式:</label>
-                <div class="mode-switcher">
-                    <button id="btn-shape-fill-filled" class="mode-btn active">實心</button>
-                    <button id="btn-shape-fill-outline" class="mode-btn">空心</button>
-                </div>
-            </div>
-            <div class="control-group">
-                <label for="drawing-height">繪畫高度:</label>
-                <div class="slider-group">
-                    <input type="range" id="drawing-height" min="0" max="10" step="0.1" value="0">
-                    <span id="height-display" class="slider-display">0.0</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 粒子設定 -->
-        <div class="section">
-            <h3 class="section-title">粒子設定</h3>
-            <div class="control-group">
-                <label for="particle-type">粒子類型:</label>
-                <select id="particle-type">
-                    <option value="flame">火焰 (flame)</option>
-                    <option value="heart">愛心 (heart)</option>
-                    <option value="reddust">紅石 (reddust)</option>
-                    <option value="witch">女巫 (witch)</option>
-                    <option value="note">音符 (note)</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="particle-color">粒子顏色 (僅限紅石):</label>
-                <input type="color" id="particle-color" value="#ff0000">
-            </div>
-        </div>
-
-        <!-- 平面偏移 -->
-        <div class="section">
-            <h3 class="section-title">平面偏移</h3>
-            <div class="control-group">
-                <label for="plane-offset-x">X軸 偏移:</label>
-                <div class="slider-group">
-                    <input type="range" id="plane-offset-x" min="-50" max="50" step="0.5" value="0">
-                    <span id="offset-x-display" class="slider-display">0</span>
-                </div>
-            </div>
-            <div class="control-group">
-                <label for="plane-offset-z">Z軸 偏移:</label>
-                <div class="slider-group">
-                    <input type="range" id="plane-offset-z" min="-50" max="50" step="0.5" value="0">
-                    <span id="offset-z-display" class="slider-display">0</span>
+                <div class="control-group">
+                    <label for="drawing-height">繪畫高度:</label>
+                    <div class="slider-group">
+                        <input type="range" id="drawing-height" min="0" max="10" step="0.1" value="0">
+                        <span id="height-display" class="slider-display">0.0</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- 平面旋轉 (進階) -->
-        <div class="section">
-            <h3 class="section-title">平面旋轉 (進階)</h3>
-            <div class="control-group">
-                <label for="plane-rotation-x">X軸 旋轉:</label>
-                <div class="slider-group">
-                    <input type="range" id="plane-rotation-x" min="-180" max="180" step="1" value="0">
-                    <span id="rotation-x-display" class="slider-display">0°</span>
+        <!-- 粒子設定（預設展開） -->
+        <div class="section" data-section="particle-settings">
+            <h3 class="section-title">粒子設定 <span class="collapse-arrow">▾</span></h3>
+            <div class="section-content">
+                <div class="control-group">
+                    <label for="particle-type">粒子類型:</label>
+                    <select id="particle-type">
+                        <option value="flame">火焰 (flame)</option>
+                        <option value="heart">愛心 (heart)</option>
+                        <option value="reddust">紅石 (reddust)</option>
+                        <option value="witch">女巫 (witch)</option>
+                        <option value="note">音符 (note)</option>
+                    </select>
                 </div>
-            </div>
-            <div class="control-group">
-                <label for="plane-rotation-y">Y軸 旋轉:</label>
-                <div class="slider-group">
-                    <input type="range" id="plane-rotation-y" min="-180" max="180" step="1" value="0">
-                    <span id="rotation-y-display" class="slider-display">0°</span>
-                </div>
-            </div>
-            <div class="control-group">
-                <label for="plane-rotation-z">Z軸 旋轉:</label>
-                <div class="slider-group">
-                    <input type="range" id="plane-rotation-z" min="-180" max="180" step="1" value="0">
-                    <span id="rotation-z-display" class="slider-display">0°</span>
+                <div class="control-group">
+                    <label for="particle-color">粒子顏色 (僅限紅石):</label>
+                    <input type="color" id="particle-color" value="#ff0000">
                 </div>
             </div>
         </div>
 
-        <!-- 操作與輸出 -->
-        <div class="section">
-            <h3 class="section-title">操作與輸出</h3>
-             <div class="control-group">
-                <div class="button-grid">
-                    <button id="btn-undo" class="secondary-btn">上一步</button>
-                    <button id="btn-clear" class="secondary-btn">清除畫布</button>
+        <!-- 操作與輸出（預設收合） -->
+        <div class="section collapsed" data-section="actions-output">
+            <h3 class="section-title">操作與輸出 <span class="collapse-arrow">▸</span></h3>
+            <div class="section-content">
+                <div class="control-group">
+                    <div class="button-grid">
+                        <button id="btn-undo" class="secondary-btn">上一步</button>
+                        <button id="btn-clear" class="secondary-btn">清除畫布</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="button-grid">
+                        <button id="btn-generate" class="primary-btn">生成程式碼</button>
+                        <button id="btn-copy-code" class="secondary-btn">複製</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <textarea id="code-output" rows="6" readonly placeholder="生成的 MythicMobs 程式碼將顯示在這裡..."></textarea>
                 </div>
             </div>
-            <div class="control-group">
-                <div class="button-grid">
-                    <button id="btn-generate" class="primary-btn">生成程式碼</button>
-                    <button id="btn-copy-code" class="secondary-btn">複製</button>
+        </div>
+
+        <!-- 專案管理（預設收合） -->
+        <div class="section collapsed" data-section="project-management">
+            <h3 class="section-title">專案管理 <span class="collapse-arrow">▸</span></h3>
+            <div class="section-content">
+                <div class="control-group">
+                    <label for="project-name">專案名稱:</label>
+                    <input type="text" id="project-name" placeholder="輸入專案名稱" value="未命名專案">
+                </div>
+                <div class="control-group">
+                    <label for="skill-id">技能 ID:</label>
+                    <input type="text" id="skill-id" placeholder="輸入技能ID" value="MyDrawingSkill">
+                </div>
+                <div class="control-group">
+                    <div class="button-grid">
+                        <button id="btn-save-project" class="secondary-btn">儲存</button>
+                        <button id="btn-load-project" class="secondary-btn">載入</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="button-grid full-width">
+                        <button id="btn-new-project" class="primary-btn">建立新專案</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>目前專案狀態:</label>
+                    <div id="current-project-display">未命名專案</div>
                 </div>
             </div>
-            <div class="control-group">
-                <textarea id="code-output" rows="6" readonly placeholder="生成的 MythicMobs 程式碼將顯示在這裡..."></textarea>
+        </div>
+
+        <!-- 場景設定（預設收合） -->
+        <div class="section collapsed" data-section="scene-settings">
+            <h3 class="section-title">場景設定 <span class="collapse-arrow">▸</span></h3>
+            <div class="section-content">
+                <div class="control-group">
+                    <label for="grid-size">網格大小:</label>
+                    <div class="slider-group">
+                        <input type="range" id="grid-size" min="5" max="50" step="5" value="10">
+                        <span id="grid-size-display" class="slider-display">10</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="camera-sensitivity">攝影機靈敏度:</label>
+                    <div class="slider-group">
+                        <input type="range" id="camera-sensitivity" min="0.1" max="3" step="0.1" value="1">
+                        <span id="sensitivity-display" class="slider-display">1.0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 平面偏移（預設收合） -->
+        <div class="section collapsed" data-section="plane-offset">
+            <h3 class="section-title">平面偏移 <span class="collapse-arrow">▸</span></h3>
+            <div class="section-content">
+                <div class="control-group">
+                    <label for="plane-offset-x">X軸 偏移:</label>
+                    <div class="slider-group">
+                        <input type="range" id="plane-offset-x" min="-50" max="50" step="0.5" value="0">
+                        <span id="offset-x-display" class="slider-display">0</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="plane-offset-z">Z軸 偏移:</label>
+                    <div class="slider-group">
+                        <input type="range" id="plane-offset-z" min="-50" max="50" step="0.5" value="0">
+                        <span id="offset-z-display" class="slider-display">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 平面旋轉 (進階)（預設收合） -->
+        <div class="section collapsed" data-section="plane-rotation">
+            <h3 class="section-title">平面旋轉 (進階) <span class="collapse-arrow">▸</span></h3>
+            <div class="section-content">
+                <div class="control-group">
+                    <label for="plane-rotation-x">X軸 旋轉:</label>
+                    <div class="slider-group">
+                        <input type="range" id="plane-rotation-x" min="-180" max="180" step="1" value="0">
+                        <span id="rotation-x-display" class="slider-display">0°</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="plane-rotation-y">Y軸 旋轉:</label>
+                    <div class="slider-group">
+                        <input type="range" id="plane-rotation-y" min="-180" max="180" step="1" value="0">
+                        <span id="rotation-y-display" class="slider-display">0°</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="plane-rotation-z">Z軸 旋轉:</label>
+                    <div class="slider-group">
+                        <input type="range" id="plane-rotation-z" min="-180" max="180" step="1" value="0">
+                        <span id="rotation-z-display" class="slider-display">0°</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
