@@ -173,6 +173,20 @@ class ThreeScene {
         this.controls.panSpeed = sensitivity;
     }
 
+    getDrawingPlaneInfo() {
+        const plane = this.dynamicTargetPlane;
+        plane.updateMatrixWorld(true);
+
+        const normal = new THREE.Vector3(0, 1, 0)
+            .applyQuaternion(plane.quaternion)
+            .normalize();
+
+        const worldToPlane = point => plane.worldToLocal(point.clone());
+        const planeToWorld = point => plane.localToWorld(point.clone());
+
+        return { plane, normal, worldToPlane, planeToWorld };
+    }
+
     updateGridSize(size) {
         this.gridSize = size;
 
