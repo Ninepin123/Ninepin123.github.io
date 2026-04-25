@@ -24,6 +24,17 @@ class UIManager {
         // --- UI 元素 ---
         this.particleTypeSelect = document.querySelector('#particle-type');
         this.particleColorInput = document.querySelector('#particle-color');
+        this.animationEnabledCheckbox = document.querySelector('#animation-enabled');
+        this.animationTickGroup = document.querySelector('#animation-tick-group');
+        this.animationTickIntervalSlider = document.querySelector('#animation-tick-interval');
+        this.animationTickDisplay = document.querySelector('#animation-tick-display');
+        this.animationPreviewBtn = document.querySelector('#btn-animation-preview');
+        this.toggleGroupAnimationBtn = document.querySelector('#btn-toggle-group-animation');
+        this.selectedGroupStatus = document.querySelector('#selected-group-status');
+        this.groupTickOverrideGroup = document.querySelector('#group-tick-override-group');
+        this.groupTickInput = document.querySelector('#group-tick-interval');
+        this.groupTickStatus = document.querySelector('#group-tick-status');
+        this.resetGroupTickBtn = document.querySelector('#btn-reset-group-tick');
         this.drawingHeightSlider = document.querySelector('#drawing-height');
         this.heightDisplay = document.querySelector('#height-display');
         this.planeRotationXSlider = document.querySelector('#plane-rotation-x');
@@ -59,7 +70,12 @@ class UIManager {
             eraser: document.querySelector('#btn-mode-eraser'),
             rectangle: document.querySelector('#btn-mode-rectangle'),
             circle: document.querySelector('#btn-mode-circle'),
+            mirror: document.querySelector('#btn-mode-mirror'),
         };
+
+        // --- 鏡子管理 ---
+        this.mirrorCountDisplay = document.querySelector('#mirror-count');
+        this.clearMirrorsBtn = document.querySelector('#btn-clear-mirrors');
 
         // --- 橡皮擦模式按鈕 ---
         this.eraserModeButtons = {
@@ -109,6 +125,38 @@ class UIManager {
         this.particleTypeSelect.addEventListener('change', () => this.handleParticleSettingsChange());
         this.particleColorInput.addEventListener('input', () => this.handleParticleSettingsChange());
 
+        // 動畫設定
+        this.animationEnabledCheckbox.addEventListener('change', (e) => {
+            if (!e.target.checked && this.animationPreview && this.animationPreview.isRunning()) {
+                this.animationPreview.stop();
+            }
+            this.stateManager.setAnimationEnabled(e.target.checked);
+        });
+        this.animationTickIntervalSlider.addEventListener('input', (e) => {
+            this.stateManager.setAnimationTickInterval(parseFloat(e.target.value));
+        });
+        this.toggleGroupAnimationBtn.addEventListener('click', () => {
+            const sel = this.stateManager.getState().selectedGroup;
+            if (sel && sel.id) {
+                this.stateManager.toggleGroupAnimated(sel.id);
+            }
+        });
+        this.groupTickInput.addEventListener('input', (e) => {
+            const sel = this.stateManager.getState().selectedGroup;
+            if (sel && sel.id) {
+                const v = parseFloat(e.target.value);
+                if (Number.isFinite(v) && v > 0) {
+                    this.stateManager.setGroupTickInterval(sel.id, v);
+                }
+            }
+        });
+        this.resetGroupTickBtn.addEventListener('click', () => {
+            const sel = this.stateManager.getState().selectedGroup;
+            if (sel && sel.id) {
+                this.stateManager.setGroupTickInterval(sel.id, null);
+            }
+        });
+
         // 繪圖設定
         this.drawingHeightSlider.addEventListener('input', (e) => this.stateManager.setDrawingHeight(parseFloat(e.target.value)));
 
@@ -134,6 +182,15 @@ class UIManager {
         // 專案管理
         this.projectNameInput.addEventListener('input', (e) => this.stateManager.setProjectName(e.target.value));
         this.skillIdInput.addEventListener('input', (e) => this.stateManager.setSkillId(e.target.value));
+
+        // 鏡子管理
+        this.clearMirrorsBtn.addEventListener('click', () => {
+            const state = this.stateManager.getState();
+            if (state.mirrors.length === 0) return;
+            if (confirm(`確定要清除 ${state.mirrors.length} 面鏡子嗎？已繪製的粒子不會被刪除。`)) {
+                this.stateManager.clearMirrors();
+            }
+        });
     }
 
     // --- 可折疊區塊 ---
@@ -276,6 +333,47 @@ class UIManager {
         this.particleColorInput.disabled = !isColorSupported;
         this.particleColorInput.closest('.control-group').style.opacity = isColorSupported ? 1.0 : 0.5;
 
+        // 更新動畫設定
+        this.animationEnabledCheckbox.checked = !!state.animationEnabled;
+        this.animationTickGroup.style.display = state.animationEnabled ? 'block' : 'none';
+        this.animationTickIntervalSlider.value = state.animationTickInterval;
+        this.animationTickDisplay.textContent = Number(state.animationTickInterval).toFixed(1);
+
+        // 選中群組的動畫狀態
+        const selectedId = state.selectedGroup && state.selectedGroup.id;
+        const selectedGroup = selectedId
+            ? state.drawingGroups.find(g => g.id === selectedId)
+            : null;
+        if (selectedGroup) {
+            this.toggleGroupAnimationBtn.disabled = false;
+            this.selectedGroupStatus.textContent = selectedGroup.isAnimated
+                ? `已選中：動畫群組（${selectedGroup.particles.length} 粒子）`
+                : `已選中：靜態群組（${selectedGroup.particles.length} 粒子）`;
+        } else {
+            this.toggleGroupAnimationBtn.disabled = true;
+            this.selectedGroupStatus.textContent = '未選中群組（用「選擇」工具點選）';
+        }
+
+        // 群組 tick 覆寫面板
+        if (this.groupTickOverrideGroup) {
+            const showOverride = !!(selectedGroup && selectedGroup.isAnimated);
+            this.groupTickOverrideGroup.style.display = showOverride ? 'block' : 'none';
+            if (showOverride) {
+                const override = selectedGroup.tickInterval;
+                if (override !== undefined && override !== null) {
+                    if (document.activeElement !== this.groupTickInput) {
+                        this.groupTickInput.value = override;
+                    }
+                    this.groupTickStatus.textContent = `已覆寫：每 ${Number(override).toFixed(2)} tick`;
+                } else {
+                    if (document.activeElement !== this.groupTickInput) {
+                        this.groupTickInput.value = state.animationTickInterval;
+                    }
+                    this.groupTickStatus.textContent = `目前使用全域值（${Number(state.animationTickInterval).toFixed(1)} tick）`;
+                }
+            }
+        }
+
         // 更新繪圖高度
         this.drawingHeightSlider.value = state.drawingHeight;
         this.heightDisplay.textContent = state.drawingHeight.toFixed(1);
@@ -310,6 +408,11 @@ class UIManager {
 
         // 更新浮動調色盤
         this.floatingPalette.update(state);
+
+        // 更新鏡子數量顯示
+        if (this.mirrorCountDisplay) {
+            this.mirrorCountDisplay.textContent = (state.mirrors || []).length;
+        }
     }
 
     // 將專案管理按鈕的事件監聽器與 ProjectManager 連接
@@ -317,6 +420,35 @@ class UIManager {
         this.newProjectBtn.addEventListener('click', () => projectManager.newProject());
         this.saveProjectBtn.addEventListener('click', () => projectManager.saveProject());
         this.loadProjectBtn.addEventListener('click', () => projectManager.loadProject());
+    }
+
+    // 綁定動畫預覽控制器
+    bindAnimationPreview(animationPreview) {
+        this.animationPreview = animationPreview;
+
+        const updateBtn = () => {
+            if (animationPreview.isRunning()) {
+                this.animationPreviewBtn.textContent = '■ 停止預覽';
+                this.animationPreviewBtn.classList.add('active');
+            } else {
+                this.animationPreviewBtn.textContent = '▶ 預覽動畫';
+                this.animationPreviewBtn.classList.remove('active');
+            }
+        };
+
+        animationPreview.onStart = updateBtn;
+        animationPreview.onEnd = updateBtn;
+
+        this.animationPreviewBtn.addEventListener('click', () => {
+            if (animationPreview.isRunning()) {
+                animationPreview.stop();
+            } else {
+                const started = animationPreview.play();
+                if (!started) {
+                    alert('畫布上沒有任何粒子點可預覽！');
+                }
+            }
+        });
     }
 }
 

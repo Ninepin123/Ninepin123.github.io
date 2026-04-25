@@ -17,12 +17,22 @@ class ProjectManager {
                 particleType: point.particleType,
                 color: point.color
             })),
-            groups: state.drawingGroups.map(group => ({
-                id: group.id,
-                type: group.type,
-                particles: group.particles || [],
-                bounds: group.bounds,
-                position: group.position
+            groups: state.drawingGroups.map(group => {
+                const out = {
+                    id: group.id,
+                    type: group.type,
+                    particles: group.particles || [],
+                    isAnimated: !!group.isAnimated,
+                    bounds: group.bounds,
+                    position: group.position
+                };
+                if (group.tickInterval !== undefined && group.tickInterval !== null) {
+                    out.tickInterval = group.tickInterval;
+                }
+                return out;
+            }),
+            mirrors: (state.mirrors || []).map(m => ({
+                id: m.id, x1: m.x1, z1: m.z1, x2: m.x2, z2: m.z2
             })),
             settings: {
                 drawingHeight: state.drawingHeight,
@@ -31,7 +41,9 @@ class ProjectManager {
                 particleColor: state.particleColor,
                 cameraSensitivity: state.cameraSensitivity,
                 skillId: state.skillId,
-                gridSize: state.gridSize
+                gridSize: state.gridSize,
+                animationEnabled: state.animationEnabled,
+                animationTickInterval: state.animationTickInterval
             }
         };
     }

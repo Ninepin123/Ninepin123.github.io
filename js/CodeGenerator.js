@@ -13,21 +13,63 @@ class CodeGenerator {
         }
 
         const skillId = state.skillId || 'MyDrawingSkill';
+        const animationEnabled = !!state.animationEnabled;
+        const globalTickFloat = parseFloat(state.animationTickInterval);
+        const globalTick = Number.isFinite(globalTickFloat) && globalTickFloat > 0 ? globalTickFloat : 1;
         const skillLines = [`${skillId}:`, '  Skills:'];
 
-        // 從個別粒子點生成程式碼
-        state.particlePoints.forEach(point => {
-            skillLines.push(this.buildParticleLine(point));
-        });
+        // 收集動畫粒子（依 tick 分群）與靜態粒子
+        // 用量化過的 tick 當 Map key，避免浮點誤差導致同 tick 沒被合併
+        const byTick = new Map();
+        const staticParticles = [];
+        const quantize = t => Math.round(t * 100) / 100;
+        const addToTick = (tick, point) => {
+            const key = quantize(tick);
+            if (!byTick.has(key)) byTick.set(key, []);
+            byTick.get(key).push(point);
+        };
 
-        // 從繪圖群組生成程式碼
+        // 獨立粒子點：無 isAnimated 標記，視為靜態
+        state.particlePoints.forEach(point => staticParticles.push(point));
+
+        // 繪圖群組：依群組的 isAnimated 決定歸類；若群組有自己的 tickInterval 則優先使用
         state.drawingGroups.forEach(group => {
-            if (group.particles && group.particles.length > 0) {
-                group.particles.forEach(point => {
-                    skillLines.push(this.buildParticleLine(point));
+            if (!group.particles || group.particles.length === 0) return;
+            const animatedGroup = animationEnabled && !!group.isAnimated;
+            if (animatedGroup) {
+                const groupTickFloat = parseFloat(group.tickInterval);
+                const tickInterval = Number.isFinite(groupTickFloat) && groupTickFloat > 0 ? groupTickFloat : globalTick;
+                group.particles.forEach((point, index) => {
+                    addToTick(index * tickInterval, point);
                 });
+            } else {
+                group.particles.forEach(point => staticParticles.push(point));
             }
         });
+
+        const ticks = Array.from(byTick.keys()).sort((a, b) => a - b);
+
+        if (ticks.length === 0) {
+            // 沒有動畫粒子：全部直接輸出
+            staticParticles.forEach(point => {
+                skillLines.push(this.buildParticleLine(point, null));
+            });
+        } else {
+            // 有動畫粒子：每個 tick 群組先印靜態、再印該 tick 的動畫粒子
+            ticks.forEach((tick, i) => {
+                if (i > 0) {
+                    const delta = quantize(tick - ticks[i - 1]);
+                    const deltaStr = Number.isInteger(delta) ? String(delta) : delta.toFixed(2);
+                    skillLines.push(`    - delay ${deltaStr}`);
+                }
+                staticParticles.forEach(point => {
+                    skillLines.push(this.buildParticleLine(point, null));
+                });
+                byTick.get(tick).forEach(point => {
+                    skillLines.push(this.buildParticleLine(point, null));
+                });
+            });
+        }
 
         this.codeOutput.value = skillLines.join('\n');
 
@@ -35,7 +77,7 @@ class CodeGenerator {
         this.download(`${skillId}.yml`, this.codeOutput.value);
     }
 
-    buildParticleLine(point) {
+    buildParticleLine(point, delay = null) {
         const sideOffset = (-point.x).toFixed(3);
         const yOffset = point.y.toFixed(3);
         const forwardOffset = point.z.toFixed(3);
@@ -46,7 +88,8 @@ class CodeGenerator {
         if (point.particleType === 'reddust') {
             attributes.push(`color=${point.color}`);
         }
-        return `    - effect:particles{${attributes.join(';')}} @self`;
+        const suffix = (delay !== null && delay !== undefined) ? ` -delay ${delay}` : '';
+        return `    - effect:particles{${attributes.join(';')}} @self${suffix}`;
     }
 
     copy() {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import DrawingGroup from './DrawingGroup.js';
+import { reflectParticles } from './ReflectionUtil.js';
 
 class ShapeTool {
     constructor(sceneManager) {
@@ -176,12 +177,15 @@ class ShapeTool {
 
         if (particles.length === 0) return null;
 
+        const finalParticles = reflectParticles(particles, state.mirrors || []);
+
         this.startPoint = null;
         return new DrawingGroup({
             type: shapeType,
-            particles,
+            particles: finalParticles,
             particleType: state.particleType,
-            color: state.particleColor
+            color: state.particleColor,
+            isAnimated: !!state.animationEnabled
         });
     }
 

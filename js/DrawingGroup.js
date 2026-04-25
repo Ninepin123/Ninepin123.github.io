@@ -11,6 +11,7 @@ class DrawingGroup {
         this.particles = config.particles || [];
         this.particleType = config.particleType || 'flame';
         this.color = config.color || '#ff0000';
+        this.isAnimated = !!config.isAnimated;
 
         // 邊界框
         this.bounds = config.bounds || this.calculateBounds();
@@ -268,6 +269,7 @@ class DrawingGroup {
             })),
             particleType: this.particleType,
             color: this.color,
+            isAnimated: this.isAnimated,
             bounds: this.bounds,
             position: this.position,
             createdAt: this.createdAt
@@ -284,6 +286,7 @@ class DrawingGroup {
             particles: json.particles || [],
             particleType: json.particleType,
             color: json.color,
+            isAnimated: !!json.isAnimated,
             bounds: json.bounds,
             position: json.position,
             createdAt: json.createdAt

@@ -18,6 +18,9 @@ class StateManager {
         this.skillId = 'MyDrawingSkill'; // 新增：技能 ID
         this.gridSize = 10; // 新增：網格大小
         this.selectedGroup = null; // 新增：當前選中的群組
+        this.animationEnabled = false; // 動畫效果：依粒子順序加入 -delay
+        this.animationTickInterval = 1; // 每個粒子間隔的 tick 數
+        this.mirrors = []; // 鏡子陣列：[{id, x1, z1, x2, z2}]
 
 
         // 監聽器
@@ -54,6 +57,9 @@ class StateManager {
             skillId: this.skillId,
             gridSize: this.gridSize,
             selectedGroup: this.selectedGroup,
+            animationEnabled: this.animationEnabled,
+            animationTickInterval: this.animationTickInterval,
+            mirrors: this.mirrors,
             usedColors: this.getUsedColors(),
         };
     }
@@ -170,6 +176,70 @@ class StateManager {
         this.notify();
     }
 
+    setAnimationEnabled(enabled) {
+        this.animationEnabled = !!enabled;
+        this.setUnsavedChanges(true);
+        this.notify();
+    }
+
+    setAnimationTickInterval(ticks) {
+        const v = parseFloat(ticks);
+        const n = Math.max(0.1, Number.isFinite(v) ? v : 1);
+        this.animationTickInterval = Math.round(n * 100) / 100;
+        this.setUnsavedChanges(true);
+        this.notify();
+    }
+
+    setGroupTickInterval(groupId, ticks) {
+        const group = this.drawingGroups.find(g => g.id === groupId);
+        if (!group) return;
+        if (ticks === null || ticks === undefined || ticks === '') {
+            delete group.tickInterval;
+        } else {
+            const v = parseFloat(ticks);
+            if (!Number.isFinite(v)) return;
+            group.tickInterval = Math.round(Math.max(0.1, v) * 100) / 100;
+        }
+        this.setUnsavedChanges(true);
+        this.notify();
+    }
+
+    addMirror(mirror) {
+        const m = {
+            id: mirror.id || crypto.randomUUID(),
+            x1: mirror.x1, z1: mirror.z1,
+            x2: mirror.x2, z2: mirror.z2
+        };
+        this.mirrors.push(m);
+        this.setUnsavedChanges(true);
+        this.notify();
+        return m;
+    }
+
+    removeMirror(id) {
+        const idx = this.mirrors.findIndex(m => m.id === id);
+        if (idx !== -1) {
+            this.mirrors.splice(idx, 1);
+            this.setUnsavedChanges(true);
+            this.notify();
+        }
+    }
+
+    clearMirrors() {
+        if (this.mirrors.length === 0) return;
+        this.mirrors = [];
+        this.setUnsavedChanges(true);
+        this.notify();
+    }
+
+    toggleGroupAnimated(groupId) {
+        const group = this.drawingGroups.find(g => g.id === groupId);
+        if (!group) return;
+        group.isAnimated = !group.isAnimated;
+        this.setUnsavedChanges(true);
+        this.notify();
+    }
+
     setUnsavedChanges(status) {
         this.hasUnsavedChanges = status;
         this.notify();
@@ -265,6 +335,21 @@ class StateManager {
             this.particleColor = projectData.settings.particleColor || '#ff0000';
             this.skillId = projectData.settings.skillId || 'MyDrawingSkill';
             this.gridSize = projectData.settings.gridSize || 10;
+            this.animationEnabled = !!projectData.settings.animationEnabled;
+            const aTick = parseFloat(projectData.settings.animationTickInterval);
+            this.animationTickInterval = Number.isFinite(aTick) && aTick > 0 ? aTick : 1;
+        } else {
+            this.animationEnabled = false;
+            this.animationTickInterval = 1;
+        }
+
+        if (Array.isArray(projectData.mirrors)) {
+            this.mirrors = projectData.mirrors.map(m => ({
+                id: m.id || crypto.randomUUID(),
+                x1: m.x1, z1: m.z1, x2: m.x2, z2: m.z2
+            }));
+        } else {
+            this.mirrors = [];
         }
 
         if (projectData.particles) {
@@ -277,10 +362,22 @@ class StateManager {
         }
 
         if (projectData.groups) {
-            this.drawingGroups = projectData.groups.map(g => ({
-                ...g,
-                id: g.id || crypto.randomUUID()
-            }));
+            // 相容舊檔案：若群組沒有 isAnimated 標記，依專案當時的動畫啟用狀態預設
+            const legacyDefault = !!(projectData.settings && projectData.settings.animationEnabled);
+            this.drawingGroups = projectData.groups.map(g => {
+                const gt = parseFloat(g.tickInterval);
+                const out = {
+                    ...g,
+                    id: g.id || crypto.randomUUID(),
+                    isAnimated: g.isAnimated === undefined ? legacyDefault : !!g.isAnimated
+                };
+                if (Number.isFinite(gt) && gt > 0) {
+                    out.tickInterval = gt;
+                } else {
+                    delete out.tickInterval;
+                }
+                return out;
+            });
         }
 
         this.setUnsavedChanges(false);

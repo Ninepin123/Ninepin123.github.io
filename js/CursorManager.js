@@ -46,6 +46,11 @@ class CursorManager {
                 this.canvas.style.cursor = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><circle cx=\'12\' cy=\'12\' r=\'8\' fill=\'none\' stroke=\'%2300aaff\' stroke-width=\'2\'/></svg>") 12 12, crosshair';
                 break;
 
+            case 'mirror':
+                // 鏡子工具使用斜線游標
+                this.canvas.style.cursor = 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><line x1=\'4\' y1=\'20\' x2=\'20\' y2=\'4\' stroke=\'%2366ccff\' stroke-width=\'3\'/><circle cx=\'4\' cy=\'20\' r=\'2\' fill=\'%2366ccff\'/><circle cx=\'20\' cy=\'4\' r=\'2\' fill=\'%2366ccff\'/></svg>") 12 12, crosshair';
+                break;
+
             default:
                 this.canvas.style.cursor = 'default';
         }

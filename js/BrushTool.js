@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import DrawingGroup from './DrawingGroup.js';
+import { reflectSingleParticle } from './ReflectionUtil.js';
 
 class BrushTool {
     constructor(sceneManager) {
@@ -10,28 +11,32 @@ class BrushTool {
     }
 
     startStroke(intersectPoint, state) {
-        const pointData = {
+        const basePoint = {
             id: crypto.randomUUID(),
             x: intersectPoint.x, y: intersectPoint.y, z: intersectPoint.z,
             particleType: state.particleType, color: state.particleColor
         };
 
+        const allPoints = reflectSingleParticle(basePoint, state.mirrors || []);
+
         this.currentGroup = new DrawingGroup({
             type: 'brush',
-            particles: [pointData],
+            particles: allPoints,
             particleType: state.particleType,
-            color: state.particleColor
-        });
-
-        const pointVec = new THREE.Vector3(pointData.x, pointData.y, pointData.z);
-        const previewMesh = this.sceneManager.addPoint({
-            point: pointVec,
             color: state.particleColor,
-            opacity: 0.5
+            isAnimated: !!state.animationEnabled
         });
-        this.previewMeshes.push(previewMesh);
 
-        return pointData;
+        for (const p of allPoints) {
+            const previewMesh = this.sceneManager.addPoint({
+                point: new THREE.Vector3(p.x, p.y, p.z),
+                color: p.color,
+                opacity: 0.5
+            });
+            this.previewMeshes.push(previewMesh);
+        }
+
+        return basePoint;
     }
 
     continueStroke(intersectPoint, state, lastPointPosition) {
@@ -40,23 +45,25 @@ class BrushTool {
         const lastPos = new THREE.Vector3(lastPointPosition.x, lastPointPosition.y, lastPointPosition.z);
         if (intersectPoint.distanceTo(lastPos) <= this.MIN_DISTANCE) return null;
 
-        const pointData = {
+        const basePoint = {
             id: crypto.randomUUID(),
             x: intersectPoint.x, y: intersectPoint.y, z: intersectPoint.z,
             particleType: state.particleType, color: state.particleColor
         };
 
-        this.currentGroup.addParticle(pointData);
+        const allPoints = reflectSingleParticle(basePoint, state.mirrors || []);
 
-        const pointVec = new THREE.Vector3(pointData.x, pointData.y, pointData.z);
-        const previewMesh = this.sceneManager.addPoint({
-            point: pointVec,
-            color: state.particleColor,
-            opacity: 0.5
-        });
-        this.previewMeshes.push(previewMesh);
+        for (const p of allPoints) {
+            this.currentGroup.addParticle(p);
+            const previewMesh = this.sceneManager.addPoint({
+                point: new THREE.Vector3(p.x, p.y, p.z),
+                color: p.color,
+                opacity: 0.5
+            });
+            this.previewMeshes.push(previewMesh);
+        }
 
-        return pointData;
+        return basePoint;
     }
 
     finishStroke() {

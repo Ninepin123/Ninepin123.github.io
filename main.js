@@ -12,6 +12,10 @@ import ShapeTool from './js/ShapeTool.js';
 import SceneSync from './js/SceneSync.js';
 import EraserTool from './js/EraserTool.js';
 import SelectionManager from './js/SelectionManager.js';
+import AnimationPreview from './js/AnimationPreview.js';
+import MirrorTool from './js/MirrorTool.js';
+import MirrorManager from './js/MirrorManager.js';
+import { reflectParticles } from './js/ReflectionUtil.js';
 
 class App {
     constructor() {
@@ -29,6 +33,9 @@ class App {
         this.shapeTool = new ShapeTool(this.sceneManager);
         this.eraserTool = new EraserTool(this.stateManager, this.sceneManager, this.sceneSync);
         this.selectionManager = new SelectionManager(this.sceneManager, this.sceneSync);
+        this.animationPreview = new AnimationPreview(this.stateManager, this.sceneSync);
+        this.mirrorTool = new MirrorTool(this.sceneManager);
+        this.mirrorManager = new MirrorManager(this.sceneManager);
 
         this.BRUSH_RADIUS = 0.3;
         this.ERASER_RADIUS = 0.5;
@@ -40,6 +47,7 @@ class App {
 
     connectModules() {
         this.uiManager.bindProjectManager(this.projectManager);
+        this.uiManager.bindAnimationPreview(this.animationPreview);
         this.stateManager.subscribe(this.onStateChange.bind(this));
     }
 
@@ -68,6 +76,14 @@ class App {
         // 場景同步
         this.sceneSync.sync(state, { isDragging: this.selectionManager.isDragging });
 
+        // 同步鏡子視覺
+        this.mirrorManager.sync(state.mirrors || [], state.drawingHeight);
+
+        // 切離鏡子模式時取消半成品
+        if (state.currentMode !== 'mirror' && this.mirrorTool.isActive()) {
+            this.mirrorTool.cancel();
+        }
+
         // 選取狀態同步
         this.selectionManager.selectedGroupId = this.sceneSync.syncSelection(
             state,
@@ -84,7 +100,19 @@ class App {
         }
     }
 
+    _handleMirrorDown(intersectPoint) {
+        const result = this.mirrorTool.handleClick(intersectPoint);
+        if (result) {
+            this.stateManager.addMirror(result);
+        }
+    }
+
     handleMouseDown(event) {
+        // 預覽進行中時，任何繪製/編輯動作都先停止預覽
+        if (this.animationPreview.isRunning()) {
+            this.animationPreview.stop();
+        }
+
         const state = this.stateManager.getState();
         if (state.currentMode === 'camera') return;
 
@@ -122,6 +150,9 @@ class App {
             case 'circle':
                 this.shapeTool.startShape(intersectPoint);
                 break;
+            case 'mirror':
+                this._handleMirrorDown(intersectPoint);
+                break;
         }
     }
 
@@ -143,6 +174,15 @@ class App {
         } else {
             this.toolPreview.clear();
             this.eraserTool.clearPreview();
+        }
+
+        // 鏡子預覽：放置中（已有起點）顯示動態線段
+        if (state.currentMode === 'mirror') {
+            if (this.mirrorTool.isActive() && intersectPoint) {
+                this.mirrorTool.updatePreview(intersectPoint, state.drawingHeight);
+            }
+        } else {
+            this.mirrorTool.clearPreview();
         }
 
         // 框選更新
@@ -267,11 +307,13 @@ class App {
             x: intersectPoint.x, y: intersectPoint.y, z: intersectPoint.z,
             particleType: state.particleType, color: state.particleColor
         };
+        const allParticles = reflectParticles([pointData], state.mirrors || []);
         const group = new DrawingGroup({
             type: 'point',
-            particles: [pointData],
+            particles: allParticles,
             particleType: state.particleType,
-            color: state.particleColor
+            color: state.particleColor,
+            isAnimated: !!state.animationEnabled
         });
         this.stateManager.addGroup(group.toJSON());
         this.stateManager.setDrawing(false);

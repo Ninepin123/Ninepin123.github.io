@@ -59,12 +59,22 @@ class LocalStorageManager {
                     particleType: p.particleType,
                     color: p.color
                 })),
-                groups: state.drawingGroups.map(g => ({
-                    id: g.id,
-                    type: g.type,
-                    particles: g.particles || [],
-                    bounds: g.bounds,
-                    position: g.position
+                groups: state.drawingGroups.map(g => {
+                    const out = {
+                        id: g.id,
+                        type: g.type,
+                        particles: g.particles || [],
+                        isAnimated: !!g.isAnimated,
+                        bounds: g.bounds,
+                        position: g.position
+                    };
+                    if (g.tickInterval !== undefined && g.tickInterval !== null) {
+                        out.tickInterval = g.tickInterval;
+                    }
+                    return out;
+                }),
+                mirrors: (state.mirrors || []).map(m => ({
+                    id: m.id, x1: m.x1, z1: m.z1, x2: m.x2, z2: m.z2
                 })),
                 settings: {
                     drawingHeight: state.drawingHeight,
@@ -72,7 +82,9 @@ class LocalStorageManager {
                     particleType: state.particleType,
                     particleColor: state.particleColor,
                     cameraSensitivity: state.cameraSensitivity,
-                    gridSize: state.gridSize
+                    gridSize: state.gridSize,
+                    animationEnabled: state.animationEnabled,
+                    animationTickInterval: state.animationTickInterval
                 }
             };
 
@@ -123,6 +135,7 @@ class LocalStorageManager {
                 name: autoSaveData.projectName || '自動儲存',
                 particles: autoSaveData.particles || [],
                 groups: autoSaveData.groups || [],
+                mirrors: autoSaveData.mirrors || [],
                 settings: autoSaveData.settings || {}
             };
 
